@@ -1,9 +1,12 @@
 name: Docker build and push
 
 on:
-  push:
-    branches:
-      - 'main'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to build from"
+        required: false
+        default: 'main'
 
 env:
   PLATFORMS: ${{ vars.PLATFORMS || 'linux/amd64,linux/arm64' }}
@@ -11,9 +14,14 @@ env:
 jobs:
   docker-build-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.branch }} 
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
