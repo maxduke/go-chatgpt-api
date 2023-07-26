@@ -45,6 +45,8 @@ Issue
 
 家庭网络无需跑 `warp` 服务，跑了也没用，会报错，仅在服务器需要
 
+`CONTINUE_SIGNAL=1`，开启/imitate接口自动继续会话功能，留空关闭，默认关闭
+
 ---
 
 `GPT-4` 相关模型目前需要验证 `arkose_token`
@@ -123,6 +125,14 @@ Account type: Free （没有生效）
 
 Account type: Team （设置正常）
 ```
+
+---
+
+### Render部署
+
+点击下面的按钮一键部署，缺点是免费版本冷启动比较慢
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/linweiyuan/go-chatgpt-api)
 
 ---
 
@@ -229,7 +239,7 @@ Fork 此项目后，可以在 `Settings-Secrets and variables-Actions` 下控制
 
 <!--suppress HtmlRequiredAltAttribute -->
 <a href="https://github.com/linweiyuan/go-chatgpt-api/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=linweiyuan/go-chatgpt-api&max=-1"  alt=""/>
+  <img src="https://contrib.rocks/image?repo=linweiyuan/go-chatgpt-api"  alt=""/>
 </a>
 
 Made with [contrib.rocks](https://contrib.rocks).
