@@ -71,7 +71,7 @@ func CreateChatCompletions(c *gin.Context) {
 			"message": "API KEY is missing or invalid",
 			"type":    "invalid_request_error",
 			"param":   nil,
-			"code":    err.Error(),
+			"code":    "400",
 		}})
 		return
 	}
