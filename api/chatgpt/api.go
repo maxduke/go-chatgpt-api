@@ -23,6 +23,7 @@ var (
 	arkoseTokenUrl string
 	PUID           string
 	bx             string
+	IMITATE_accessToken string
 )
 
 //goland:noinspection SpellCheckingInspection,GoUnhandledErrorResult
@@ -256,6 +257,9 @@ func setupPUID() {
 						break
 					}
 				}
+
+				// store IMITATE_accessToken
+				IMITATE_accessToken = accessToken
 
 				time.Sleep(time.Hour * 24 * 7)
 			}

@@ -61,8 +61,11 @@ func CreateChatCompletions(c *gin.Context) {
 		if strings.HasPrefix(customAccessToken, "eyJhbGciOiJSUzI1NiI") {
 			token = customAccessToken
 		// use defiend access token if the provided api key is equal to "IMITATE_API_KEY"
-		} else if imitate_api_key != "" && customAccessToken == imitate_api_key{
+		} else if imitate_api_key != "" && customAccessToken == imitate_api_key {
 			token = os.Getenv("IMITATE_ACCESS_TOKEN")
+			if token == "" {
+				token = chatgpt.IMITATE_accessToken
+			}
 		}
 	}
 
