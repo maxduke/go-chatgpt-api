@@ -19,7 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/maxduke/go-chatgpt-api/api"
-	"github.com/linweiyuan/go-logger/logger"
+	// "github.com/linweiyuan/go-logger/logger"
 )
 
 func CreateConversation(c *gin.Context) {
