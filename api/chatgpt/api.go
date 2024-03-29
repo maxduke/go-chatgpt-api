@@ -102,49 +102,74 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 		return nil, true
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	// 检查状态码是否大于299
+	if resp.StatusCode > 299 {
+
+		// 关闭响应体
 		defer resp.Body.Close()
 
-		if resp.StatusCode == http.StatusUnauthorized {
-			logger.Error(fmt.Sprintf(api.AccountDeactivatedErrorMessage, c.GetString(api.EmailKey)))
-			responseMap := make(map[string]interface{})
-			json.NewDecoder(resp.Body).Decode(&responseMap)
-			c.AbortWithStatusJSON(resp.StatusCode, responseMap)
-			return nil, true
+		// 设置响应头
+		for name, values := range resp.Header {
+			c.Writer.Header()[name] = values
 		}
+		c.Writer.WriteHeader(resp.StatusCode)
 
-		req, _ := http.NewRequest(http.MethodGet, api.ChatGPTApiUrlPrefix+"/backend-api/models?history_and_training_disabled=false", nil)
-		req.Header.Set("User-Agent", api.UserAgent)
-		req.Header.Set(api.AuthorizationHeader, api.GetAccessToken(c))
-		response, err := api.Client.Do(req)
+		// 直接转发响应体
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, api.ReturnMessage(err.Error()))
-			return nil, true
+			log.Printf("Could not read response body: %v\n", err)
+			// 可能需要在这里处理错误
+		} else {
+			log.Printf("Request failed with status code: %d, status: %s, body: %s\n", resp.StatusCode, http.StatusText(resp.StatusCode), string(body))
 		}
 
-		defer response.Body.Close()
-		modelAvailable := false
-		var getModelsResponse GetModelsResponse
-		json.NewDecoder(response.Body).Decode(&getModelsResponse)
-		for _, model := range getModelsResponse.Models {
-			if model.Slug == request.Model {
-				modelAvailable = true
-				break
-			}
-		}
-		if !modelAvailable {
-			c.AbortWithStatusJSON(http.StatusForbidden, api.ReturnMessage(noModelPermissionErrorMessage))
-			return nil, true
-		}
-
-		data, _ := io.ReadAll(resp.Body)
-		logger.Warn(string(data))
-
-		responseMap := make(map[string]interface{})
-		json.NewDecoder(resp.Body).Decode(&responseMap)
-		c.AbortWithStatusJSON(resp.StatusCode, responseMap)
+		c.Writer.Write(body)
 		return nil, true
 	}
+
+	// if resp.StatusCode != http.StatusOK {
+	// 	defer resp.Body.Close()
+
+	// 	if resp.StatusCode == http.StatusUnauthorized {
+	// 		logger.Error(fmt.Sprintf(api.AccountDeactivatedErrorMessage, c.GetString(api.EmailKey)))
+	// 		responseMap := make(map[string]interface{})
+	// 		json.NewDecoder(resp.Body).Decode(&responseMap)
+	// 		c.AbortWithStatusJSON(resp.StatusCode, responseMap)
+	// 		return nil, true
+	// 	}
+
+	// 	req, _ := http.NewRequest(http.MethodGet, api.ChatGPTApiUrlPrefix+"/backend-api/models?history_and_training_disabled=false", nil)
+	// 	req.Header.Set("User-Agent", api.UserAgent)
+	// 	req.Header.Set(api.AuthorizationHeader, api.GetAccessToken(c))
+	// 	response, err := api.Client.Do(req)
+	// 	if err != nil {
+	// 		c.AbortWithStatusJSON(http.StatusInternalServerError, api.ReturnMessage(err.Error()))
+	// 		return nil, true
+	// 	}
+
+	// 	defer response.Body.Close()
+	// 	modelAvailable := false
+	// 	var getModelsResponse GetModelsResponse
+	// 	json.NewDecoder(response.Body).Decode(&getModelsResponse)
+	// 	for _, model := range getModelsResponse.Models {
+	// 		if model.Slug == request.Model {
+	// 			modelAvailable = true
+	// 			break
+	// 		}
+	// 	}
+	// 	if !modelAvailable {
+	// 		c.AbortWithStatusJSON(http.StatusForbidden, api.ReturnMessage(noModelPermissionErrorMessage))
+	// 		return nil, true
+	// 	}
+
+	// 	data, _ := io.ReadAll(resp.Body)
+	// 	logger.Warn(string(data))
+
+	// 	responseMap := make(map[string]interface{})
+	// 	json.NewDecoder(resp.Body).Decode(&responseMap)
+	// 	c.AbortWithStatusJSON(resp.StatusCode, responseMap)
+	// 	return nil, true
+	// }
 
 	return resp, false
 }
