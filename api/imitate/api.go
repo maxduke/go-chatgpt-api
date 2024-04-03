@@ -450,13 +450,13 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 				offset := 0
 				for _, citation := range original_response.Message.Metadata.Citations {
 					rl := len(r)
-					attr := urlAttrMap[citation.Metadata.URL]
+					u, _ := url.Parse(citation.Metadata.URL)
+					baseURL := u.Scheme + "://" + u.Host + "/"
+					attr := urlAttrMap[baseURL]
 					if attr == "" {
-						u, _ := url.Parse(citation.Metadata.URL)
-						baseURL := u.Scheme + "://" + u.Host + "/"
 						attr = getURLAttribution(token, api.PUID, baseURL)
 						if attr != "" {
-							urlAttrMap[citation.Metadata.URL] = attr
+							urlAttrMap[baseURL] = attr
 						}
 					}
 					original_response.Message.Content.Parts[0] = string(r[:citation.StartIx+offset]) + " ([" + attr + "](" + citation.Metadata.URL + " \"" + citation.Metadata.Title + "\"))" + string(r[citation.EndIx+offset:])
