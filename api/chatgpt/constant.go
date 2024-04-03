@@ -5,6 +5,7 @@ const (
 	parseJsonErrorMessage = "failed to parse json request body"
 
 	gpt4Model                          = "gpt-4"
+	gpt3Model                          = "gpt-3.5"
 	actionContinue                     = "continue"
 	responseTypeMaxTokens              = "max_tokens"
 	responseStatusFinishedSuccessfully = "finished_successfully"

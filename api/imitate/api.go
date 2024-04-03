@@ -64,26 +64,32 @@ func CreateChatCompletions(c *gin.Context) {
 	}
 
 	if token == "" {
-		c.JSON(400, gin.H{"error": gin.H{
-			"message": "API KEY is missing or invalid",
-			"type":    "invalid_request_error",
-			"param":   nil,
-			"code":    "400",
-		}})
-		return
+		// no token was provided, use no account approach
+		logger.Warn("no token was provided, use no account approach")
+		// c.JSON(400, gin.H{"error": gin.H{
+		// 	"message": "API KEY is missing or invalid",
+		// 	"type":    "invalid_request_error",
+		// 	"param":   nil,
+		// 	"code":    "400",
+		// }})
+		// return
 	}
 
 	uid := uuid.NewString()
 	var chat_require *chatgpt.ChatRequire
 	var wg sync.WaitGroup
-	wg.Add(2)
+	if token == "" {
+		wg.Add(1)
+	} else {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			err = chatgpt.InitWSConn(token, uid)
+		}()
+	}
 	go func() {
 		defer wg.Done()
-		err = chatgpt.InitWSConn(token, uid)
-	}()
-	go func() {
-		defer wg.Done()
-		chat_require = chatgpt.CheckRequire(token)
+		chat_require = chatgpt.CheckRequire(token, uid)
 	}()
 	wg.Wait()
 	if err != nil {
@@ -96,9 +102,9 @@ func CreateChatCompletions(c *gin.Context) {
 	}
 
 	// Convert the chat request to a ChatGPT request
-	translated_request := convertAPIRequest(original_request, chat_require.Arkose.Required)
+	translated_request := convertAPIRequest(original_request, chat_require.Arkose.Required, token)
 
-	response, done := sendConversationRequest(c, translated_request, token, chat_require.Token)
+	response, done := sendConversationRequest(c, translated_request, token, chat_require.Token, uid)
 	if done {
 		return
 	}
@@ -132,7 +138,7 @@ func CreateChatCompletions(c *gin.Context) {
 		if chat_require.Arkose.Required {
 			chatgpt.RenewTokenForRequest(&translated_request)
 		}
-		response, done = sendConversationRequest(c, translated_request, token, chat_require.Token)
+		response, done = sendConversationRequest(c, translated_request, token, chat_require.Token, uid)
 
 		if done {
 			return
@@ -174,8 +180,13 @@ func generateId() string {
 	return "chatcmpl-" + id
 }
 
-func convertAPIRequest(api_request APIRequest, requireArk bool) (chatgpt.CreateConversationRequest) {
+func convertAPIRequest(api_request APIRequest, requireArk bool, token string) (chatgpt.CreateConversationRequest) {
 	chatgpt_request := NewChatGPTRequest()
+
+	if token == "" {
+		// force to use gpt-3.5 if no token is provided
+		api_request.Model = "gpt-3.5"
+	}
 
 	var api_version int
 	if strings.HasPrefix(api_request.Model, "gpt-3.5") {
@@ -220,12 +231,11 @@ func NewChatGPTRequest() chatgpt.CreateConversationRequest {
 	}
 }
 
-func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationRequest, accessToken string, chat_token string) (*http.Response, bool) {
+func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationRequest, accessToken string, chat_token string, uuid string) (*http.Response, bool) {
 	jsonBytes, _ := json.Marshal(request)
 	req, _ := http.NewRequest(http.MethodPost, api.ChatGPTApiUrlPrefix+"/backend-api/conversation", bytes.NewBuffer(jsonBytes))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", api.UserAgent)
-	req.Header.Set(api.AuthorizationHeader, accessToken)
 	req.Header.Set("Accept", "text/event-stream")
 	if request.ArkoseToken != "" {
 		req.Header.Set("Openai-Sentinel-Arkose-Token", request.ArkoseToken)
@@ -233,14 +243,20 @@ func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationR
 	if chat_token != "" {
 		req.Header.Set("Openai-Sentinel-Chat-Requirements-Token", chat_token)
 	}
-	if api.PUID != "" {
-		req.Header.Set("Cookie", "_puid="+api.PUID+";")
+	if accessToken != "" {
+		req.Header.Set(api.AuthorizationHeader, accessToken)
+		if api.PUID != "" {
+			req.Header.Set("Cookie", "_puid="+api.PUID+";")			
+		}
+		if api.OAIDID != "" {
+			req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+api.OAIDID)
+			req.Header.Set("Oai-Device-Id", api.OAIDID)
+		}
+	} else if uuid != "" {
+		req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+uuid)
+		req.Header.Set("Oai-Device-Id", uuid)
 	}
 	req.Header.Set("Oai-Language", api.Language)
-	if api.OAIDID != "" {
-		req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+api.OAIDID)
-		req.Header.Set("Oai-Device-Id", api.OAIDID)
-	}
 	resp, err := api.Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, api.ReturnMessage(err.Error()))
