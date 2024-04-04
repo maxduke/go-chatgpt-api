@@ -57,7 +57,7 @@ func CreateConversation(c *gin.Context) {
 	chat_require := CheckRequire(authHeader)
 
 	if chat_require.Arkose.Required == true && request.ArkoseToken == "" {
-		arkoseToken, err := api.GetArkoseToken(api_version)
+		arkoseToken, err := api.GetArkoseToken(api_version, chat_require.Arkose.DX)
 		if err != nil || arkoseToken == "" {
 			c.AbortWithStatusJSON(http.StatusForbidden, api.ReturnMessage(err.Error()))
 			return
@@ -71,7 +71,7 @@ func CreateConversation(c *gin.Context) {
 		return
 	}
 
-	handleConversationResponse(c, resp, request, chat_require.Token)
+	handleConversationResponse(c, resp, request, chat_require.Token, chat_require.Arkose.DX)
 }
 
 func sendConversationRequest(c *gin.Context, request CreateConversationRequest, chat_token string) (*http.Response, bool) {
@@ -125,7 +125,7 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	return resp, false
 }
 
-func handleConversationResponse(c *gin.Context, resp *http.Response, request CreateConversationRequest, chat_token string) {
+func handleConversationResponse(c *gin.Context, resp *http.Response, request CreateConversationRequest, chat_token string, dx string) {
 	c.Writer.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 
 	isMaxTokens := false
@@ -261,7 +261,6 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 
 	if isMaxTokens && request.AutoContinue {
 		continueConversationRequest := CreateConversationRequest{
-			ArkoseToken:                request.ArkoseToken,
 			HistoryAndTrainingDisabled: request.HistoryAndTrainingDisabled,
 			Model:                      request.Model,
 			TimezoneOffsetMin:          request.TimezoneOffsetMin,
@@ -270,12 +269,13 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 			ParentMessageID: continueParentMessageID,
 			ConversationID:  continueConversationID,
 		}
+		RenewTokenForRequest(&continueConversationRequest, dx)
 		resp, done := sendConversationRequest(c, continueConversationRequest, chat_token)
 		if done {
 			return
 		}
 
-		handleConversationResponse(c, resp, continueConversationRequest, chat_token)
+		handleConversationResponse(c, resp, continueConversationRequest, chat_token, dx)
 	}
 }
 
@@ -453,14 +453,14 @@ func CheckRequire(access_token string) *ChatRequire {
 	return &require
 }
 
-func RenewTokenForRequest(request *CreateConversationRequest) {
+func RenewTokenForRequest(request *CreateConversationRequest, dx string) {
 	var api_version int
 	if strings.HasPrefix(request.Model, "gpt-4") {
 		api_version = 4
 	} else {
 		api_version = 3
 	}
-	token, err := api.GetArkoseToken(api_version)
+	token, err := api.GetArkoseToken(api_version, dx)
 	if err == nil {
 		request.ArkoseToken = token
 	} else {

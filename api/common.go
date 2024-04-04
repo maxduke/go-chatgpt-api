@@ -183,8 +183,8 @@ func GetAccessToken(c *gin.Context) string {
 	return accessToken
 }
 
-func GetArkoseToken(api_version int) (string, error) {
-	return funcaptcha.GetOpenAIToken(api_version, PUID, ProxyUrl)
+func GetArkoseToken(api_version int, dx string) (string, error) {
+	return funcaptcha.GetOpenAIToken(api_version, PUID, dx, ProxyUrl)
 }
 
 func setupIDs() {

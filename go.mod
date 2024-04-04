@@ -11,8 +11,8 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/joho/godotenv v1.5.1
 	github.com/linweiyuan/go-logger v0.0.0-20230709142852-da1f090a7d4c
-	github.com/xqdoo00o/OpenAIAuth v0.0.0-20240320160511-93065690aa0e
-	github.com/xqdoo00o/funcaptcha v0.0.0-20240313153914-4ab805804232
+	github.com/xqdoo00o/OpenAIAuth v0.0.0-20240403091529-7ef147706fc4
+	github.com/xqdoo00o/funcaptcha v0.0.0-20240403090732-1b604d808f6c
 )
 
 require (
@@ -47,7 +47,7 @@ require (
 	golang.org/x/arch v0.7.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/exp v0.0.0-20240325151524-a685a6edb6d8 // indirect
-	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect

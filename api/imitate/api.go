@@ -96,7 +96,7 @@ func CreateChatCompletions(c *gin.Context) {
 	}
 
 	// Convert the chat request to a ChatGPT request
-	translated_request := convertAPIRequest(original_request, chat_require.Arkose.Required)
+	translated_request := convertAPIRequest(original_request, chat_require.Arkose.Required, chat_require.Arkose.DX)
 
 	response, done := sendConversationRequest(c, translated_request, token, chat_require.Token)
 	if done {
@@ -130,7 +130,7 @@ func CreateChatCompletions(c *gin.Context) {
 		translated_request.ConversationID = continue_info.ConversationID
 		translated_request.ParentMessageID = continue_info.ParentID
 		if chat_require.Arkose.Required {
-			chatgpt.RenewTokenForRequest(&translated_request)
+			chatgpt.RenewTokenForRequest(&translated_request, chat_require.Arkose.DX)
 		}
 		response, done = sendConversationRequest(c, translated_request, token, chat_require.Token)
 
@@ -174,7 +174,7 @@ func generateId() string {
 	return "chatcmpl-" + id
 }
 
-func convertAPIRequest(api_request APIRequest, requireArk bool) (chatgpt.CreateConversationRequest) {
+func convertAPIRequest(api_request APIRequest, requireArk bool, dx string) (chatgpt.CreateConversationRequest) {
 	chatgpt_request := NewChatGPTRequest()
 
 	var api_version int
@@ -190,7 +190,7 @@ func convertAPIRequest(api_request APIRequest, requireArk bool) (chatgpt.CreateC
 		}
 	}
 	if requireArk {
-		token, err := api.GetArkoseToken(api_version)
+		token, err := api.GetArkoseToken(api_version, dx)
 		if err == nil {
 			chatgpt_request.ArkoseToken = token
 		} else {
