@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.1
-	github.com/bogdanfinn/fhttp v0.5.27
+	github.com/bogdanfinn/fhttp v0.5.28
 	github.com/bogdanfinn/tls-client v1.7.2
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.6.0
