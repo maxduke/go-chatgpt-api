@@ -94,7 +94,7 @@ type AuthLogin interface {
 func init() {
 	ClientProfileStr := os.Getenv("CLIENT_PROFILE")
 	if ClientProfileStr == "" {
-		ClientProfile = profiles.DefaultClientProfile
+		ClientProfile = profiles.Okhttp4Android13
 	} else {
 		// 从map中查找配置
 		if profile, ok := profiles.MappedTLSClients [ClientProfileStr]; ok {

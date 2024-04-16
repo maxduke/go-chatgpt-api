@@ -4,8 +4,11 @@
 Docker image: maxduke/go-chatgpt-api
 
 ## 20240416 fix 403 error
-默认指纹被官网识别，修改了默认指纹。
-添加新的环境变量 CLIENT_PROFILE
+添加新的环境变量
+  - CLIENT_PROFILE
+  - UA
+
+没需求不要动
 ## 20240320 fix 403 error
 ## 20240314 imitate 重构
  - 更新依赖 https://github.com/xqdoo00o/funcaptcha
@@ -38,8 +41,7 @@ Docker image: maxduke/go-chatgpt-api
 
 ## 如何为3.5开启 ARKOSE TOKEN ？
 使用环境变量
- - ENABLE_ARKOSE_3=true
-
+ - ~~ENABLE_ARKOSE_3=true~~
 ---
 
 <details>
