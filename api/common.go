@@ -13,6 +13,7 @@ import (
 	tls_client "github.com/bogdanfinn/tls-client"
 	"github.com/bogdanfinn/tls-client/profiles"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/xqdoo00o/OpenAIAuth/auth"
 	"github.com/xqdoo00o/funcaptcha"
@@ -32,7 +33,7 @@ const (
 	AuthorizationHeader                = "Authorization"
 	XAuthorizationHeader               = "X-Authorization"
 	ContentType                        = "application/x-www-form-urlencoded"
-	UserAgent                          = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+	DefaultUserAgent                   = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 	Auth0Url                           = "https://auth0.openai.com"
 	LoginUsernameUrl                   = Auth0Url + "/u/login/identifier?state="
 	LoginPasswordUrl                   = Auth0Url + "/u/login/password?state="
@@ -52,6 +53,8 @@ const (
 	refreshOaididErrorMessage = "failed to refresh oai-did"
 
 	Language = "en-US"
+
+	ClientProfileMessage = "ClientProfile: %s is used"
 )
 
 type ConnInfo struct {
@@ -70,6 +73,8 @@ var (
 	ProxyUrl     string
 	IMITATE_accessToken string
 	ConnPool = map[string][]*ConnInfo{}
+	ClientProfile profiles.ClientProfile
+	UserAgent    string
 )
 
 type LoginInfo struct {
@@ -87,10 +92,27 @@ type AuthLogin interface {
 }
 
 func init() {
+	ClientProfileStr := os.Getenv("CLIENT_PROFILE")
+	if ClientProfileStr == "" {
+		ClientProfile = profiles.Okhttp4Android13
+	} else {
+		// 从map中查找配置
+		if profile, ok := profiles.MappedTLSClients [ClientProfileStr]; ok {
+			ClientProfile = profile
+			logger.Info(fmt.Sprintf(ClientProfileMessage, ClientProfileStr))
+		} else {
+			ClientProfile = profiles.DefaultClientProfile  // 找不到配置时使用默认配置
+			logger.Info("Using default ClientProfile")
+		}
+	}
+	UserAgent = os.Getenv("UA")
+	if UserAgent == "" {
+		UserAgent = DefaultUserAgent
+	}
 	Client, _ = tls_client.NewHttpClient(tls_client.NewNoopLogger(), []tls_client.HttpClientOption{
 		tls_client.WithCookieJar(tls_client.NewCookieJar()),
 		tls_client.WithTimeoutSeconds(defaultTimeoutSeconds),
-		tls_client.WithClientProfile(profiles.Okhttp4Android13),
+		tls_client.WithClientProfile(ClientProfile),
 	}...)
 	ArkoseClient = getHttpClient()
 
@@ -111,7 +133,7 @@ func NewHttpClient() tls_client.HttpClient {
 func getHttpClient() tls_client.HttpClient {
 	client, _ := tls_client.NewHttpClient(tls_client.NewNoopLogger(), []tls_client.HttpClientOption{
 		tls_client.WithCookieJar(tls_client.NewCookieJar()),
-		tls_client.WithClientProfile(profiles.Okhttp4Android13),
+		tls_client.WithClientProfile(ClientProfile),
 	}...)
 	return client
 }
@@ -145,6 +167,8 @@ func Proxy(c *gin.Context) {
 	req.Header.Set("User-Agent", UserAgent)
 	req.Header.Set(AuthorizationHeader, GetAccessToken(c))
 	req.Header.Set("Oai-Language", Language)
+	req.Header.Set("Oai-Device-Id", OAIDID)
+	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID)
 	resp, err := Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ReturnMessage(err.Error()))
@@ -191,7 +215,6 @@ func setupIDs() {
 	username := os.Getenv("OPENAI_EMAIL")
 	password := os.Getenv("OPENAI_PASSWORD")
 	refreshtoken := os.Getenv("OPENAI_REFRESH_TOKEN")
-	OAIDID = os.Getenv("OPENAI_DEVICE_ID")
 	if username != "" && password != "" {
 		go func() {
 			for {
@@ -238,7 +261,7 @@ func setupIDs() {
 				} else {
 					PUID = puid
 					logger.Info(fmt.Sprintf("PUID is updated"))
-				}				
+				}
 
 				if oaidid == "" {
 					logger.Warn(refreshOaididErrorMessage)
@@ -307,11 +330,16 @@ func GetIDs(accessToken string) (string, string) {
 		logger.Error("GetIDs: Missing access token")
 		return "", ""
 	}
+
+	// generate device id
+	oaidid = uuid.NewSHA1(uuid.MustParse("12345678-1234-5678-1234-567812345678"), []byte(accessToken)).String()
+
 	// Make request to https://chat.openai.com/backend-api/models
 	req, _ := http.NewRequest("GET", "https://chat.openai.com/backend-api/models?history_and_training_disabled=false", nil)
 	// Add headers
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Add("User-Agent", UserAgent)
+	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+oaidid)
 
 	resp, err := NewHttpClient().Do(req)
 	if err != nil {
@@ -330,18 +358,9 @@ func GetIDs(accessToken string) (string, string) {
 			break
 		}
 	}
-	// Find `oai-did` cookie in response
-	for _, cookie := range resp.Cookies() {
-		if cookie.Name == "oai-did" {
-			oaidid = cookie.Value
-			break
-		}
-	}
+	
 	if puid == "" {
 		logger.Error("GetIDs: PUID cookie not found")
-	}
-	if oaidid == "" {
-		logger.Warn("GetIDs: OAI-DId cookie not found")
 	}
 	return puid,oaidid
 }
