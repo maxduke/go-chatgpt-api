@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	//"reflect"
 	"strings"
 	"time"
 
@@ -70,7 +71,7 @@ var (
 	ProxyUrl     string
 	IMITATE_accessToken string
 	ConnPool = map[string][]*ConnInfo{}
-	ClientProfile string
+	ClientProfile profiles.ClientProfile
 )
 
 type LoginInfo struct {
@@ -88,9 +89,11 @@ type AuthLogin interface {
 }
 
 func init() {
-	ClientProfile = os.Getenv("CLIENT_PROFILE")
-	if ClientProfile == "" {
+	ClientProfileStr := os.Getenv("CLIENT_PROFILE")
+	if ClientProfileStr == "" {
 		ClientProfile = profiles.Safari_IOS_17_0
+	} else {
+		// TODO
 	}
 	Client, _ = tls_client.NewHttpClient(tls_client.NewNoopLogger(), []tls_client.HttpClientOption{
 		tls_client.WithCookieJar(tls_client.NewCookieJar()),
