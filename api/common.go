@@ -105,7 +105,7 @@ func init() {
 			logger.Info("Using default ClientProfile")
 		}
 	}
-	UserAgent := os.Getenv("UA")
+	UserAgent = os.Getenv("UA")
 	if UserAgent == "" {
 		UserAgent = DefaultUserAgent
 	}
@@ -168,6 +168,7 @@ func Proxy(c *gin.Context) {
 	req.Header.Set(AuthorizationHeader, GetAccessToken(c))
 	req.Header.Set("Oai-Language", Language)
 	req.Header.Set("Oai-Device-Id", OAIDID)
+	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID)
 	resp, err := Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ReturnMessage(err.Error()))
