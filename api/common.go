@@ -70,6 +70,7 @@ var (
 	ProxyUrl     string
 	IMITATE_accessToken string
 	ConnPool = map[string][]*ConnInfo{}
+	ClientProfile string
 )
 
 type LoginInfo struct {
@@ -87,10 +88,14 @@ type AuthLogin interface {
 }
 
 func init() {
+	ClientProfile = os.Getenv("CLIENT_PROFILE")
+	if ClientProfile == "" {
+		ClientProfile = profiles.Safari_IOS_17_0
+	}
 	Client, _ = tls_client.NewHttpClient(tls_client.NewNoopLogger(), []tls_client.HttpClientOption{
 		tls_client.WithCookieJar(tls_client.NewCookieJar()),
 		tls_client.WithTimeoutSeconds(defaultTimeoutSeconds),
-		tls_client.WithClientProfile(profiles.Okhttp4Android13),
+		tls_client.WithClientProfile(ClientProfile),
 	}...)
 	ArkoseClient = getHttpClient()
 
@@ -111,7 +116,7 @@ func NewHttpClient() tls_client.HttpClient {
 func getHttpClient() tls_client.HttpClient {
 	client, _ := tls_client.NewHttpClient(tls_client.NewNoopLogger(), []tls_client.HttpClientOption{
 		tls_client.WithCookieJar(tls_client.NewCookieJar()),
-		tls_client.WithClientProfile(profiles.Okhttp4Android13),
+		tls_client.WithClientProfile(ClientProfile),
 	}...)
 	return client
 }
