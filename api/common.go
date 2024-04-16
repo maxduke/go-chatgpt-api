@@ -328,11 +328,17 @@ func GetIDs(accessToken string) (string, string) {
 		logger.Error("GetIDs: Missing access token")
 		return "", ""
 	}
+
+	// generate device id
+	oaidid = uuid.NewSHA1(uuid.MustParse("12345678-1234-5678-1234-567812345678"), []byte(accessToken)).String()
+
 	// Make request to https://chat.openai.com/backend-api/models
 	req, _ := http.NewRequest("GET", "https://chat.openai.com/backend-api/models?history_and_training_disabled=false", nil)
 	// Add headers
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Add("User-Agent", UserAgent)
+	req.Header.Set("Oai-Language", Language)
+	req.Header.Set("Oai-Device-Id", oaidid)
 
 	resp, err := NewHttpClient().Do(req)
 	if err != nil {
@@ -351,13 +357,9 @@ func GetIDs(accessToken string) (string, string) {
 			break
 		}
 	}
-	// generate oai-did
-	oaidid = uuid.NewSHA1(uuid.MustParse("12345678-1234-5678-1234-567812345678"), []byte(accessToken)).String()
+	
 	if puid == "" {
 		logger.Error("GetIDs: PUID cookie not found")
-	}
-	if oaidid == "" {
-		logger.Warn("GetIDs: OAI-DId cookie not found")
 	}
 	return puid,oaidid
 }
