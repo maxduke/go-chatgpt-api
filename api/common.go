@@ -53,6 +53,8 @@ const (
 	refreshOaididErrorMessage = "failed to refresh oai-did"
 
 	Language = "en-US"
+
+	ClientProfileMessage = "ClientProfile: %s is used"
 )
 
 type ConnInfo struct {
@@ -91,9 +93,15 @@ type AuthLogin interface {
 func init() {
 	ClientProfileStr := os.Getenv("CLIENT_PROFILE")
 	if ClientProfileStr == "" {
-		ClientProfile = profiles.Safari_IOS_17_0
+		ClientProfile = profiles.DefaultClientProfile
 	} else {
-		// TODO
+		// 从map中查找配置
+		if profile, ok := profiles.MappedTLSClients [ClientProfileStr]; ok {
+			ClientProfile = profile
+			logger.Info(fmt.Sprintf(ClientProfileMessage, ClientProfileStr))
+		} else {
+			ClientProfile = profiles.DefaultClientProfile  // 找不到配置时使用默认配置
+		}
 	}
 	Client, _ = tls_client.NewHttpClient(tls_client.NewNoopLogger(), []tls_client.HttpClientOption{
 		tls_client.WithCookieJar(tls_client.NewCookieJar()),

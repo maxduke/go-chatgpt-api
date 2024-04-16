@@ -3,6 +3,9 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api
 
+## 20240416 fix 403 error
+默认指纹被官网识别，修改了默认指纹。
+添加新的环境变量 CLIENT_PROFILE
 ## 20240320 fix 403 error
 ## 20240314 imitate 重构
  - 更新依赖 https://github.com/xqdoo00o/funcaptcha
@@ -38,6 +41,9 @@ Docker image: maxduke/go-chatgpt-api
  - ENABLE_ARKOSE_3=true
 
 ---
+
+<details>
+<summary>原版 README.md</summary>
 
 ## 一个尝试绕过 `Cloudflare` 来使用 `ChatGPT` 接口的程序
 
