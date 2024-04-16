@@ -230,13 +230,21 @@ func setupIDs() {
 					return
 				}
 
-				puid, err := authenticator.GetPUID()
-				if err != nil {
-					logger.Error(refreshPuidErrorMessage)
-					return
+				puid, oaidid := GetIDs(accessToken)
+				if puid == "" {
+					logger.Warn(refreshPuidErrorMessage)
+				} else {
+					PUID = puid
+					logger.Info(fmt.Sprintf("PUID is updated"))
 				}
 
-				PUID = puid
+				if oaidid == "" {
+					logger.Warn(refreshOaididErrorMessage)
+					//return
+				} else {
+					OAIDID = oaidid
+					logger.Info(fmt.Sprintf("OAIDID is updated"))
+				}
 
 				// store IMITATE_accessToken
 				IMITATE_accessToken = accessToken
@@ -280,6 +288,7 @@ func setupIDs() {
 	} else {
 		PUID = os.Getenv("PUID")
 		IMITATE_accessToken = os.Getenv("IMITATE_ACCESS_TOKEN")
+		OAIDID = uuid.New().String()
 	}
 }
 
