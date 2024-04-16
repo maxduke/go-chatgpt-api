@@ -338,6 +338,7 @@ func GetIDs(accessToken string) (string, string) {
 	// Add headers
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Add("User-Agent", UserAgent)
+	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID)
 
 	resp, err := NewHttpClient().Do(req)
 	if err != nil {
