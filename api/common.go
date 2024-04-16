@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	//"reflect"
 	"strings"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	tls_client "github.com/bogdanfinn/tls-client"
 	"github.com/bogdanfinn/tls-client/profiles"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/xqdoo00o/OpenAIAuth/auth"
 	"github.com/xqdoo00o/funcaptcha"
@@ -213,7 +213,6 @@ func setupIDs() {
 	username := os.Getenv("OPENAI_EMAIL")
 	password := os.Getenv("OPENAI_PASSWORD")
 	refreshtoken := os.Getenv("OPENAI_REFRESH_TOKEN")
-	OAIDID = os.Getenv("OPENAI_DEVICE_ID")
 	if username != "" && password != "" {
 		go func() {
 			for {
@@ -260,7 +259,7 @@ func setupIDs() {
 				} else {
 					PUID = puid
 					logger.Info(fmt.Sprintf("PUID is updated"))
-				}				
+				}
 
 				if oaidid == "" {
 					logger.Warn(refreshOaididErrorMessage)
@@ -352,13 +351,8 @@ func GetIDs(accessToken string) (string, string) {
 			break
 		}
 	}
-	// Find `oai-did` cookie in response
-	for _, cookie := range resp.Cookies() {
-		if cookie.Name == "oai-did" {
-			oaidid = cookie.Value
-			break
-		}
-	}
+	// generate oai-did
+	oaidid = uuid.NewSHA1(uuid.MustParse("12345678-1234-5678-1234-567812345678"), []byte(accessToken)).String()
 	if puid == "" {
 		logger.Error("GetIDs: PUID cookie not found")
 	}
