@@ -33,7 +33,7 @@ const (
 	AuthorizationHeader                = "Authorization"
 	XAuthorizationHeader               = "X-Authorization"
 	ContentType                        = "application/x-www-form-urlencoded"
-	UserAgent                          = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+	DefaultUserAgent                   = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 	Auth0Url                           = "https://auth0.openai.com"
 	LoginUsernameUrl                   = Auth0Url + "/u/login/identifier?state="
 	LoginPasswordUrl                   = Auth0Url + "/u/login/password?state="
@@ -74,6 +74,7 @@ var (
 	IMITATE_accessToken string
 	ConnPool = map[string][]*ConnInfo{}
 	ClientProfile profiles.ClientProfile
+	UserAgent    string
 )
 
 type LoginInfo struct {
@@ -101,7 +102,12 @@ func init() {
 			logger.Info(fmt.Sprintf(ClientProfileMessage, ClientProfileStr))
 		} else {
 			ClientProfile = profiles.DefaultClientProfile  // 找不到配置时使用默认配置
+			logger.Info("Using default ClientProfile")
 		}
+	}
+	UserAgent := os.Getenv("UA")
+	if UserAgent == "" {
+		UserAgent = DefaultUserAgent
 	}
 	Client, _ = tls_client.NewHttpClient(tls_client.NewNoopLogger(), []tls_client.HttpClientOption{
 		tls_client.WithCookieJar(tls_client.NewCookieJar()),
