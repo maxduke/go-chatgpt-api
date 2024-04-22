@@ -79,11 +79,11 @@ func CreateChatCompletions(c *gin.Context) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		err = chatgpt.InitWSConn(token, uid)
+		err = chatgpt.InitWSConn(token, api.OAIDID, uid)
 	}()
 	go func() {
 		defer wg.Done()
-		chat_require = chatgpt.CheckRequire(token)
+		chat_require = chatgpt.CheckRequire(token, api.OAIDID)
 	}()
 	wg.Wait()
 	if err != nil {
@@ -95,10 +95,15 @@ func CreateChatCompletions(c *gin.Context) {
 		return
 	}
 
+	var proofToken string
+	if chat_require.Proof.Required {
+		proofToken = chatgpt.CalcProofToken(chat_require.Proof.Seed, chat_require.Proof.Difficulty)
+	}
+
 	// Convert the chat request to a ChatGPT request
 	translated_request := convertAPIRequest(original_request, chat_require.Arkose.Required, chat_require.Arkose.DX)
 
-	response, done := sendConversationRequest(c, translated_request, token, chat_require.Token)
+	response, done := sendConversationRequest(c, translated_request, token, api.OAIDID, chat_require.Token, proofToken)
 	if done {
 		return
 	}
@@ -132,7 +137,7 @@ func CreateChatCompletions(c *gin.Context) {
 		if chat_require.Arkose.Required {
 			chatgpt.RenewTokenForRequest(&translated_request, chat_require.Arkose.DX)
 		}
-		response, done = sendConversationRequest(c, translated_request, token, chat_require.Token)
+		response, done = sendConversationRequest(c, translated_request, token, api.OAIDID, chat_require.Token, proofToken)
 
 		if done {
 			return
@@ -220,12 +225,11 @@ func NewChatGPTRequest() chatgpt.CreateConversationRequest {
 	}
 }
 
-func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationRequest, accessToken string, chat_token string) (*http.Response, bool) {
+func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationRequest, accessToken string, deviceId string, chat_token string, proofToken string) (*http.Response, bool) {
+	apiUrl := api.ChatGPTApiUrlPrefix+"/backend-api/conversation"
 	jsonBytes, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, api.ChatGPTApiUrlPrefix+"/backend-api/conversation", bytes.NewBuffer(jsonBytes))
+	req, err := chatgpt.NewRequest(http.MethodPost, apiUrl, bytes.NewReader(jsonBytes), accessToken, deviceId)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", api.UserAgent)
-	req.Header.Set(api.AuthorizationHeader, accessToken)
 	req.Header.Set("Accept", "text/event-stream")
 	if request.ArkoseToken != "" {
 		req.Header.Set("Openai-Sentinel-Arkose-Token", request.ArkoseToken)
@@ -233,13 +237,8 @@ func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationR
 	if chat_token != "" {
 		req.Header.Set("Openai-Sentinel-Chat-Requirements-Token", chat_token)
 	}
-	if api.PUID != "" {
-		req.Header.Set("Cookie", "_puid="+api.PUID+";")
-	}
-	req.Header.Set("Oai-Language", api.Language)
-	if api.OAIDID != "" {
-		req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+api.OAIDID)
-		req.Header.Set("Oai-Device-Id", api.OAIDID)
+	if proofToken != "" {
+		req.Header.Set("Openai-Sentinel-Proof-Token", proofToken)
 	}
 	resp, err := api.Client.Do(req)
 	if err != nil {
@@ -454,7 +453,7 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 					baseURL := u.Scheme + "://" + u.Host + "/"
 					attr := urlAttrMap[baseURL]
 					if attr == "" {
-						attr = getURLAttribution(token, api.PUID, baseURL)
+						attr = getURLAttribution(token, api.PUID, api.OAIDID, baseURL)
 						if attr != "" {
 							urlAttrMap[baseURL] = attr
 						}
@@ -553,23 +552,12 @@ type urlAttr struct {
 	Attribution string `json:"attribution"`
 }
 
-func getURLAttribution(access_token string, puid string, url string) string {
-	request, err := http.NewRequest(http.MethodPost, "https://chat.openai.com/backend-api/attributions", bytes.NewBuffer([]byte(`{"urls":["`+url+`"]}`)))
+func getURLAttribution(access_token string, puid string, deviceId string, url string) string {
+	request, err := chatgpt.NewRequest(http.MethodPost, "https://chat.openai.com/backend-api/attributions", bytes.NewBuffer([]byte(`{"urls":["`+url+`"]}`)), access_token, deviceId)
 	if err != nil {
 		return ""
-	}
-	if puid != "" {
-		request.Header.Set("Cookie", "_puid="+puid+";")
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("User-Agent", api.UserAgent)
-	request.Header.Set("Oai-Language", api.Language)
-	if access_token != "" {
-		request.Header.Set("Authorization", "Bearer "+access_token)
-	}
-	if err != nil {
-		return ""
-	}
 	response, err := api.Client.Do(request)
 	if err != nil {
 		return ""
