@@ -65,7 +65,7 @@ func CreateConversation(c *gin.Context) {
 	if strings.HasPrefix(authHeader, "Bearer") {
 		authHeader = strings.Replace(authHeader, "Bearer ", "", 1)
 	}
-	chat_require := CheckRequire(authHeader)
+	chat_require := CheckRequire(authHeader, api.OAIDID)
 
 	if chat_require.Arkose.Required == true && request.ArkoseToken == "" {
 		arkoseToken, err := api.GetArkoseToken(api_version, chat_require.Arkose.DX)
@@ -82,20 +82,19 @@ func CreateConversation(c *gin.Context) {
 		proofToken = CalcProofToken(chat_require.Proof.Seed, chat_require.Proof.Difficulty)
 	}
 
-	resp, done := sendConversationRequest(c, request, chat_require.Token, proofToken)
+	resp, done := sendConversationRequest(c, request, authHeader, api.OAIDID, chat_require.Token, proofToken)
 	if done {
 		return
 	}
 
-	handleConversationResponse(c, resp, request, chat_require.Token, proofToken, chat_require.Arkose.DX)
+	handleConversationResponse(c, resp, request, authHeader, api.OAIDID, chat_require.Token, proofToken, chat_require.Arkose.DX)
 }
 
-func sendConversationRequest(c *gin.Context, request CreateConversationRequest, chat_token string, proofToken string) (*http.Response, bool) {
+func sendConversationRequest(c *gin.Context, request CreateConversationRequest, accessToken string, deviceId string, chat_token string, proofToken string) (*http.Response, bool) {
+	apiUrl := api.ChatGPTApiUrlPrefix+"/backend-api/conversation"
 	jsonBytes, _ := json.Marshal(request)
-	req, _ := http.NewRequest(http.MethodPost, api.ChatGPTApiUrlPrefix+"/backend-api/conversation", bytes.NewBuffer(jsonBytes))
+	req, err := NewRequest(http.MethodPost, apiUrl, bytes.NewReader(jsonBytes), accessToken, deviceId)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", api.UserAgent)
-	req.Header.Set(api.AuthorizationHeader, api.GetAccessToken(c))
 	req.Header.Set("Accept", "text/event-stream")
 	if request.ArkoseToken != "" {
 		req.Header.Set("Openai-Sentinel-Arkose-Token", request.ArkoseToken)
@@ -105,14 +104,6 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	}
 	if proofToken != "" {
 		req.Header.Set("Openai-Sentinel-Proof-Token", proofToken)
-	}
-	if api.PUID != "" {
-		req.Header.Set("Cookie", "_puid="+api.PUID+";")
-	}
-	req.Header.Set("Oai-Language", api.Language)
-	if api.OAIDID != "" {
-		req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+api.OAIDID)
-		req.Header.Set("Oai-Device-Id", api.OAIDID)
 	}
 	resp, err := api.Client.Do(req)
 	if err != nil {
@@ -144,7 +135,7 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	return resp, false
 }
 
-func handleConversationResponse(c *gin.Context, resp *http.Response, request CreateConversationRequest, chat_token string, proofToken string, dx string) {
+func handleConversationResponse(c *gin.Context, resp *http.Response, request CreateConversationRequest, accessToken string, deviceId string, chat_token string, proofToken string, dx string) {
 	c.Writer.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 
 	isMaxTokens := false
@@ -289,17 +280,42 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 			ConversationID:  continueConversationID,
 		}
 		RenewTokenForRequest(&continueConversationRequest, dx)
-		resp, done := sendConversationRequest(c, continueConversationRequest, chat_token, proofToken)
+		resp, done := sendConversationRequest(c, continueConversationRequest, accessToken, deviceId, chat_token, proofToken)
 		if done {
 			return
 		}
 
-		handleConversationResponse(c, resp, continueConversationRequest, chat_token, proofToken, dx)
+		handleConversationResponse(c, resp, continueConversationRequest, accessToken, deviceId, chat_token, proofToken, dx)
 	}
 }
 
-func getWSURL(token string, retry int) (string, error) {
-	request, err := http.NewRequest(http.MethodPost, "https://chat.openai.com/backend-api/register-websocket", nil)
+func NewRequest(method string, url string, body io.Reader, token string, deviceId string) (*http.Request, error) {
+	request, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return &http.Request{}, err
+	}
+	request.Header.Set("User-Agent", api.UserAgent)
+	request.Header.Set("Accept", "*/*")
+	request.Header.Set("Oai-Device-Id", deviceId)
+	if deviceId != "" {
+		request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-did="+deviceId)
+		request.Header.Set("Oai-Device-Id", deviceId)
+	}
+	request.Header.Set("Oai-Language", api.Language)
+	if token != "" {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
+	if api.PUID != "" {
+		request.Header.Set("Cookie", "_puid="+api.PUID+";")
+	}
+	// if secret.TeamUserID != "" {
+	// 	request.Header.Set("Chatgpt-Account-Id", secret.TeamUserID)
+	// }
+	return request, nil
+}
+
+func getWSURL(token string, deviceId string, retry int) (string, error) {
+	request, err := NewRequest(http.MethodPost, "https://chat.openai.com/backend-api/register-websocket", nil, token, deviceId)
 	if err != nil {
 		return "", err
 	}
@@ -314,7 +330,7 @@ func getWSURL(token string, retry int) (string, error) {
 			return "", err
 		}
 		time.Sleep(time.Second) // wait 1s to get ws url
-		return getWSURL(token, retry+1)
+		return getWSURL(token, deviceId, retry+1)
 	}
 	defer response.Body.Close()
 	var WSSResp ChatGPTWSSResponse
@@ -385,7 +401,7 @@ func UnlockSpecConn(token string, uuid string) {
 	}
 }
 
-func InitWSConn(token string, uuid string) error {
+func InitWSConn(token string, deviceId string, uuid string) error {
 	connInfo := findAvailConn(token, uuid)
 	conn := connInfo.Conn
 	isExpired := connInfo.Expire.IsZero() || time.Now().After(connInfo.Expire)
@@ -395,7 +411,7 @@ func InitWSConn(token string, uuid string) error {
 			conn.Close()
 			connInfo.Conn = nil
 		}
-		wssURL, err := getWSURL(token, 0)
+		wssURL, err := getWSURL(token, deviceId, 0)
 		if err != nil {
 			return err
 		}
@@ -427,7 +443,7 @@ func InitWSConn(token string, uuid string) error {
 				conn.Close()
 				connInfo.Conn = nil
 				connInfo.Lock = false
-				return InitWSConn(token, uuid)
+				return InitWSConn(token, deviceId, uuid)
 			case context.DeadlineExceeded:
 				return nil
 			default:
@@ -438,27 +454,15 @@ func InitWSConn(token string, uuid string) error {
 	}
 }
 
-func CheckRequire(access_token string) *ChatRequire {
-	request, err := http.NewRequest(http.MethodPost, "https://chat.openai.com/backend-api/sentinel/chat-requirements", bytes.NewBuffer([]byte(`{"conversation_mode_kind":"primary_assistant"}`)))
+func CheckRequire(access_token string, deviceId string) *ChatRequire {
+	body := bytes.NewBuffer([]byte(`{}`))
+	var apiUrl string
+	apiUrl = "https://chat.openai.com/backend-api/sentinel/chat-requirements"
+	request, err := NewRequest(http.MethodPost, apiUrl, body, access_token, deviceId)
 	if err != nil {
 		return nil
-	}
-	if api.PUID != "" {
-		request.Header.Set("Cookie", "_puid="+api.PUID+";")
-	}
-	request.Header.Set("Oai-Language", api.Language)
-	if api.OAIDID != "" {
-		request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-did="+api.OAIDID)
-		request.Header.Set("Oai-Device-Id", api.OAIDID)
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("User-Agent", api.UserAgent)
-	if access_token != "" {
-		request.Header.Set("Authorization", "Bearer "+access_token)
-	}
-	if err != nil {
-		return nil
-	}
 	response, err := api.Client.Do(request)
 	if err != nil {
 		return nil
