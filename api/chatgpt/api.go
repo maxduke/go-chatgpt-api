@@ -5,10 +5,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	http2 "net/http"
 	"strings"
 	"time"
@@ -16,9 +18,18 @@ import (
 	http "github.com/bogdanfinn/fhttp"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/sha3"
 
 	"github.com/maxduke/go-chatgpt-api/api"
 	"github.com/linweiyuan/go-logger/logger"
+)
+
+var (
+	answers             = map[string]string{}
+	cores               = []int{8, 12, 16, 24}
+	screens             = []int{3000, 4000, 6000}
+	timeLocation, _     = time.LoadLocation("Asia/Shanghai")
+	timeLayout          = "Mon Jan 2 2006 15:04:05"
 )
 
 func CreateConversation(c *gin.Context) {
@@ -66,15 +77,20 @@ func CreateConversation(c *gin.Context) {
 		request.ArkoseToken = arkoseToken
 	}
 
-	resp, done := sendConversationRequest(c, request, chat_require.Token)
+	var proofToken string
+	if chat_require.Proof.Required {
+		proofToken = CalcProofToken(chat_require.Proof.Seed, chat_require.Proof.Difficulty)
+	}
+
+	resp, done := sendConversationRequest(c, request, chat_require.Token, proofToken)
 	if done {
 		return
 	}
 
-	handleConversationResponse(c, resp, request, chat_require.Token, chat_require.Arkose.DX)
+	handleConversationResponse(c, resp, request, chat_require.Token, proofToken, chat_require.Arkose.DX)
 }
 
-func sendConversationRequest(c *gin.Context, request CreateConversationRequest, chat_token string) (*http.Response, bool) {
+func sendConversationRequest(c *gin.Context, request CreateConversationRequest, chat_token string, proofToken string) (*http.Response, bool) {
 	jsonBytes, _ := json.Marshal(request)
 	req, _ := http.NewRequest(http.MethodPost, api.ChatGPTApiUrlPrefix+"/backend-api/conversation", bytes.NewBuffer(jsonBytes))
 	req.Header.Set("Content-Type", "application/json")
@@ -86,6 +102,9 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	}
 	if chat_token != "" {
 		req.Header.Set("Openai-Sentinel-Chat-Requirements-Token", chat_token)
+	}
+	if proofToken != "" {
+		req.Header.Set("Openai-Sentinel-Proof-Token", proofToken)
 	}
 	if api.PUID != "" {
 		req.Header.Set("Cookie", "_puid="+api.PUID+";")
@@ -125,7 +144,7 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	return resp, false
 }
 
-func handleConversationResponse(c *gin.Context, resp *http.Response, request CreateConversationRequest, chat_token string, dx string) {
+func handleConversationResponse(c *gin.Context, resp *http.Response, request CreateConversationRequest, chat_token string, proofToken string, dx string) {
 	c.Writer.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 
 	isMaxTokens := false
@@ -270,12 +289,12 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 			ConversationID:  continueConversationID,
 		}
 		RenewTokenForRequest(&continueConversationRequest, dx)
-		resp, done := sendConversationRequest(c, continueConversationRequest, chat_token)
+		resp, done := sendConversationRequest(c, continueConversationRequest, chat_token, proofToken)
 		if done {
 			return
 		}
 
-		handleConversationResponse(c, resp, continueConversationRequest, chat_token, dx)
+		handleConversationResponse(c, resp, continueConversationRequest, chat_token, proofToken, dx)
 	}
 }
 
@@ -451,6 +470,47 @@ func CheckRequire(access_token string) *ChatRequire {
 		return nil
 	}
 	return &require
+}
+
+type ProofWork struct {
+	Difficulty string `json:"difficulty,omitempty"`
+	Required   bool   `json:"required"`
+	Seed       string `json:"seed,omitempty"`
+}
+
+func getParseTime() string {
+	now := time.Now()
+	now = now.In(timeLocation)
+	return now.Format(timeLayout) + " GMT+0800 (中国标准时间)"
+}
+func getConfig() []interface{} {
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	core := cores[rand.Intn(4)]
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	screen := screens[rand.Intn(3)]
+	return []interface{}{core + screen, getParseTime(), int64(4294705152), 0, api.DefaultUserAgent}
+
+}
+func CalcProofToken(seed string, diff string) string {
+	if answers[seed] != "" {
+		return answers[seed]
+	}
+	config := getConfig()
+	diffLen := len(diff) / 2
+	hasher := sha3.New512()
+	for i := 0; i < 100000; i++ {
+		config[3] = i
+		json, _ := json.Marshal(config)
+		base := base64.StdEncoding.EncodeToString(json)
+		hasher.Write([]byte(seed + base))
+		hash := hasher.Sum(nil)
+		hasher.Reset()
+		if hex.EncodeToString(hash[:diffLen]) <= diff {
+			answers[seed] = "gAAAAAB" + base
+			return answers[seed]
+		}
+	}
+	return "gAAAAABwQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D" + base64.StdEncoding.EncodeToString([]byte(`"`+seed+`"`))
 }
 
 func RenewTokenForRequest(request *CreateConversationRequest, dx string) {

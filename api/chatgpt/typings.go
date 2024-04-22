@@ -123,7 +123,8 @@ type WSSMsgResponseData struct {
 }
 
 type ChatRequire struct {
-	Token  string `json:"token"`
+	Token  string    `json:"token"`
+	Proof  ProofWork `json:"proofofwork,omitempty"`
 	Arkose struct {
 		Required bool   `json:"required"`
 		DX       string `json:"dx,omitempty"`

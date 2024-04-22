@@ -3,6 +3,7 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api
 
+## 20240422 add POW
 ## 20240416 fix 403 error
 添加新的环境变量
   - CLIENT_PROFILE
@@ -39,8 +40,8 @@ Docker image: maxduke/go-chatgpt-api
 
 [har获取方式](https://github.com/xqdoo00o/ChatGPT-to-API/blob/master/README_ZH.md#har%E6%96%87%E4%BB%B6%E6%B1%A0)
 
-## 如何为3.5开启 ARKOSE TOKEN ？
-使用环境变量
+## ~~如何为3.5开启 ARKOSE TOKEN ？~~
+~~使用环境变量~~
  - ~~ENABLE_ARKOSE_3=true~~
 ---
 
