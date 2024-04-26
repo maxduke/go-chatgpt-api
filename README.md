@@ -3,6 +3,9 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api
 
+## 20240426
+默认关闭 healthcheck, 如需要开启请配置新的环境变量
+  - ENABLE_HEALTHCHECK
 ## 20240422 add POW
 ## 20240416 fix 403 error
 添加新的环境变量

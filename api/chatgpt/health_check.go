@@ -14,12 +14,18 @@ import (
 
 const (
 	healthCheckUrl         = "https://chat.openai.com/backend-api/accounts/check"
+	infoHCnotEnable        = "Health Check is disabled"
 	errorHintBlock         = "looks like you have bean blocked by OpenAI, please change to a new IP or have a try with WARP"
 	errorHintFailedToStart = "failed to start, please try again later: %s"
 	sleepHours             = 8760 // 365 days
 )
 
 func init() {
+	enableHC := os.Getenv("ENABLE_HEALTHCHECK")
+	if enableHC == "" {
+		logger.Info(infoHCnotEnable)
+		return
+	}
 	proxyUrl := os.Getenv("PROXY")
 	if proxyUrl != "" {
 		logger.Info("PROXY: " + proxyUrl)
