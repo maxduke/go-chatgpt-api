@@ -21,16 +21,19 @@ const (
 )
 
 func init() {
+	proxyUrl := os.Getenv("PROXY")
+	if proxyUrl != "" {
+		logger.Info("PROXY: " + proxyUrl)
+		api.Client.SetProxy(proxyUrl)
+	}
+
 	enableHC := os.Getenv("ENABLE_HEALTHCHECK")
 	if enableHC == "" {
 		logger.Info(infoHCnotEnable)
 		return
 	}
-	proxyUrl := os.Getenv("PROXY")
+	
 	if proxyUrl != "" {
-		logger.Info("PROXY: " + proxyUrl)
-		api.Client.SetProxy(proxyUrl)
-
 		for {
 			resp, err := healthCheck()
 			if err != nil {
