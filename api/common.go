@@ -168,7 +168,7 @@ func Proxy(c *gin.Context) {
 	req.Header.Set(AuthorizationHeader, GetAccessToken(c))
 	req.Header.Set("Oai-Language", Language)
 	req.Header.Set("Oai-Device-Id", OAIDID)
-	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID)
+	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID+";")
 	resp, err := Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ReturnMessage(err.Error()))
@@ -348,7 +348,7 @@ func GetIDs(accessToken string) (string, string) {
 	// Add headers
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Add("User-Agent", UserAgent)
-	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+oaidid)
+	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+oaidid+";")
 
 	resp, err := NewHttpClient().Do(req)
 	if err != nil {
