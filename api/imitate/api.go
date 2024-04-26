@@ -272,7 +272,7 @@ func GetImageSource(wg *sync.WaitGroup, url string, prompt string, token string,
 	}
 	request.Header.Set("Oai-Language", api.Language)
 	if api.OAIDID != "" {
-		request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-did="+api.OAIDID)
+		request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-did="+api.OAIDID+";")
 		request.Header.Set("Oai-Device-Id", api.OAIDID)
 	}
 	request.Header.Set("User-Agent", api.UserAgent)

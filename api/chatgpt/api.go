@@ -298,7 +298,7 @@ func NewRequest(method string, url string, body io.Reader, token string, deviceI
 	request.Header.Set("Accept", "*/*")
 	request.Header.Set("Oai-Device-Id", deviceId)
 	if deviceId != "" {
-		request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-did="+deviceId)
+		request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-did="+deviceId+";")
 		request.Header.Set("Oai-Device-Id", deviceId)
 	}
 	request.Header.Set("Oai-Language", api.Language)
