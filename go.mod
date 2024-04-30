@@ -3,7 +3,7 @@ module github.com/maxduke/go-chatgpt-api
 go 1.21
 
 require (
-	github.com/PuerkitoBio/goquery v1.9.1
+	github.com/PuerkitoBio/goquery v1.9.2
 	github.com/bogdanfinn/fhttp v0.5.28
 	github.com/bogdanfinn/tls-client v1.7.4
 	github.com/gin-gonic/gin v1.9.1
