@@ -129,6 +129,7 @@ type ChatRequire struct {
 		Required bool   `json:"required"`
 		DX       string `json:"dx,omitempty"`
 	} `json:"arkose"`
+	Hardware int
 }
 
 type FileInfo struct {

@@ -12,12 +12,14 @@ import (
 	"log"
 	"math/rand"
 	http2 "net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	http "github.com/bogdanfinn/fhttp"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/crypto/sha3"
 
 	"github.com/maxduke/go-chatgpt-api/api"
@@ -30,6 +32,8 @@ var (
 	screens             = []int{3000, 4000, 6000}
 	timeLocation, _     = time.LoadLocation("Asia/Shanghai")
 	timeLayout          = "Mon Jan 2 2006 15:04:05"
+	cachedScripts       = []string{}
+	cachedDpl           = ""
 )
 
 func CreateConversation(c *gin.Context) {
@@ -79,7 +83,7 @@ func CreateConversation(c *gin.Context) {
 
 	var proofToken string
 	if chat_require.Proof.Required {
-		proofToken = CalcProofToken(chat_require.Proof.Seed, chat_require.Proof.Difficulty)
+		proofToken = CalcProofToken(chat_require)
 	}
 
 	resp, done := sendConversationRequest(c, request, authHeader, api.OAIDID, chat_require.Token, proofToken)
@@ -455,7 +459,8 @@ func InitWSConn(token string, deviceId string, uuid string) error {
 }
 
 func CheckRequire(access_token string, deviceId string) *ChatRequire {
-	body := bytes.NewBuffer([]byte(`{}`))
+	proof, hardware := generateAnswer(strconv.FormatFloat(rand.Float64(), 'f', -1, 64), "0", 0)
+	body := bytes.NewBuffer([]byte(`{"p":"` + "gAAAAAC" + proof + `"}`))
 	var apiUrl string
 	apiUrl = "https://chat.openai.com/backend-api/sentinel/chat-requirements"
 	request, err := NewRequest(http.MethodPost, apiUrl, body, access_token, deviceId)
@@ -473,6 +478,7 @@ func CheckRequire(access_token string, deviceId string) *ChatRequire {
 	if err != nil {
 		return nil
 	}
+	require.Hardware = hardware
 	return &require
 }
 
@@ -487,34 +493,74 @@ func getParseTime() string {
 	now = now.In(timeLocation)
 	return now.Format(timeLayout) + " GMT+0800 (中国标准时间)"
 }
-func getConfig() []interface{} {
-	rand.New(rand.NewSource(time.Now().UnixNano()))
-	core := cores[rand.Intn(4)]
-	rand.New(rand.NewSource(time.Now().UnixNano()))
-	screen := screens[rand.Intn(3)]
-	return []interface{}{core + screen, getParseTime(), int64(4294705152), 0, api.DefaultUserAgent}
-
-}
-func CalcProofToken(seed string, diff string) string {
-	if answers[seed] != "" {
-		return answers[seed]
+func getDpl() bool {
+	if len(cachedScripts) != 0 {
+		return true
 	}
-	config := getConfig()
-	diffLen := len(diff) / 2
+	request, err := http.NewRequest(http.MethodGet, "https://chat.openai.com/", nil)
+	request.Header.Set("User-Agent", api.UserAgent)
+	request.Header.Set("Accept", "*/*")
+	if err != nil {
+		return false
+	}
+	response, err := api.Client.Do(request)
+	if err != nil {
+		return false
+	}
+	defer response.Body.Close()
+	doc, _ := goquery.NewDocumentFromReader(response.Body)
+	cachedScripts = nil
+	doc.Find("script[src]").Each(func(i int, s *goquery.Selection) {
+		src, exists := s.Attr("src")
+		if exists {
+			cachedScripts = append(cachedScripts, src)
+			if cachedDpl == "" {
+				idx := strings.Index(src, "dpl")
+				if idx >= 0 {
+					cachedDpl = src[idx:]
+				}
+			}
+		}
+	})
+	return len(cachedScripts) != 0
+}
+func getConfig(hardware int) []interface{} {
+	if hardware == 0 {
+		rand.New(rand.NewSource(time.Now().UnixNano()))
+		core := cores[rand.Intn(4)]
+		rand.New(rand.NewSource(time.Now().UnixNano()))
+		screen := screens[rand.Intn(3)]
+		hardware = core + screen
+	}
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	script := cachedScripts[rand.Intn(len(cachedScripts))]
+	return []interface{}{hardware, getParseTime(), int64(4294705152), 0, api.UserAgent, script, cachedDpl, "zh-CN", "zh-CN,en,en-GB,en-US"}
+}
+
+func CalcProofToken(require *ChatRequire) string {
+	proof, _ := generateAnswer(require.Proof.Seed, require.Proof.Difficulty, require.Hardware)
+	return "gAAAAAB" + proof
+}
+
+func generateAnswer(seed string, diff string, hardware int) (string, int) {
+	if !getDpl() {
+		return "wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D" + base64.StdEncoding.EncodeToString([]byte(`"`+seed+`"`)), 0
+	}
+	config := getConfig(hardware)
+	diffLen := len(diff)
 	hasher := sha3.New512()
-	for i := 0; i < 100000; i++ {
+	for i := 0; i < 1000000; i++ {
 		config[3] = i
 		json, _ := json.Marshal(config)
 		base := base64.StdEncoding.EncodeToString(json)
 		hasher.Write([]byte(seed + base))
 		hash := hasher.Sum(nil)
 		hasher.Reset()
-		if hex.EncodeToString(hash[:diffLen]) <= diff {
-			answers[seed] = "gAAAAAB" + base
-			return answers[seed]
+		if hex.EncodeToString(hash[:diffLen])[:diffLen] <= diff {
+			return base, config[0].(int)
 		}
 	}
-	return "gAAAAABwQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D" + base64.StdEncoding.EncodeToString([]byte(`"`+seed+`"`))
+	return "wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D" + base64.StdEncoding.EncodeToString([]byte(`"`+seed+`"`)), config[0].(int)
 }
 
 func RenewTokenForRequest(request *CreateConversationRequest, dx string) {
