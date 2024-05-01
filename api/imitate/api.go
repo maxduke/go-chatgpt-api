@@ -97,7 +97,7 @@ func CreateChatCompletions(c *gin.Context) {
 
 	var proofToken string
 	if chat_require.Proof.Required {
-		proofToken = chatgpt.CalcProofToken(chat_require.Proof.Seed, chat_require.Proof.Difficulty)
+		proofToken = chatgpt.CalcProofToken(chat_require)
 	}
 
 	// Convert the chat request to a ChatGPT request
