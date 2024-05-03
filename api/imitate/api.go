@@ -188,11 +188,16 @@ func convertAPIRequest(api_request APIRequest, requireArk bool, dx string) (chat
 		chatgpt_request.Model = "text-davinci-002-render-sha"
 	} else if strings.HasPrefix(api_request.Model, "gpt-4") {
 		api_version = 4
-		chatgpt_request.Model = api_request.Model
-		// Cover some models like gpt-4-32k
-		if len(api_request.Model) >= 7 && api_request.Model[6] >= 48 && api_request.Model[6] <= 57 {
-			chatgpt_request.Model = "gpt-4"
-		}
+		chatgpt_request.Model = "gpt-4"
+		// TODO support gpts
+		// if len(api_request.Model) > 12 {
+		// 	key := api_request.Model[6:11]
+		// 	if key == "gizmo" {
+		// 		val := api_request.Model[12:]
+		// 		chatgpt_request.ConversationMode.Kind = "gizmo_interaction"
+		// 		chatgpt_request.ConversationMode.GizmoId = val
+		// 	}
+		// }
 	}
 	if requireArk {
 		token, err := api.GetArkoseToken(api_version, dx)
@@ -201,10 +206,6 @@ func convertAPIRequest(api_request APIRequest, requireArk bool, dx string) (chat
 		} else {
 			fmt.Println("Error getting Arkose token: ", err)
 		}
-	}
-	if api_request.PluginIDs != nil {
-		chatgpt_request.PluginIDs = api_request.PluginIDs
-		chatgpt_request.Model = "gpt-4-plugins"
 	}
 	for _, api_message := range api_request.Messages {
 		if api_message.Role == "system" {

@@ -1,7 +1,12 @@
 # go-chatgpt-api
 
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
-Docker image: maxduke/go-chatgpt-api
+Docker image: maxduke/go-chatgpt-api:latest
+
+## 20240503
+后续计划移除imitate相关接口，有chat2api的需求的建议使用熊猫大佬的项目：
+
+https://github.com/xqdoo00o/ChatGPT-to-API
 
 ## 20240501
 调整chatrequirement以及pow算法
