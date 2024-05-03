@@ -11,16 +11,21 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"net"
 	http2 "net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
 	http "github.com/bogdanfinn/fhttp"
+	"github.com/bogdanfinn/tls-client/profiles"
+	tls "github.com/bogdanfinn/utls"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/crypto/sha3"
+	"golang.org/x/net/proxy"
 
 	"github.com/maxduke/go-chatgpt-api/api"
 	"github.com/linweiyuan/go-logger/logger"
@@ -345,17 +350,39 @@ func getWSURL(token string, deviceId string, retry int) (string, error) {
 	return WSSResp.WssUrl, nil
 }
 
-func CreateWSConn(url string, connInfo *api.ConnInfo, retry int) error {
-	dialer := websocket.DefaultDialer
+type rawDialer interface {
+	Dial(network string, addr string) (c net.Conn, err error)
+}
+
+func CreateWSConn(addr string, connInfo *api.ConnInfo, retry int) error {
+	dialer := websocket.Dialer{
+		NetDialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, _, _ := net.SplitHostPort(addr)
+			config := &tls.Config{ServerName: host, OmitEmptyPsk: true}
+			var rawDial rawDialer
+			if api.ProxyUrl != "" {
+				proxyURL, _ := url.Parse(api.ProxyUrl)
+				rawDial, _ = proxy.FromURL(proxyURL, proxy.Direct)
+			} else {
+				rawDial = &net.Dialer{}
+			}
+			dialConn, err := rawDial.Dial("tcp", addr)
+			if err != nil {
+				return nil, err
+			}
+			client := tls.UClient(dialConn, config, profiles.Okhttp4Android13.GetClientHelloId(), false, true)
+			return client, nil
+		},
+	}
 	dialer.EnableCompression = true
 	dialer.Subprotocols = []string{"json.reliable.webpubsub.azure.v1"}
-	conn, _, err := dialer.Dial(url, nil)
+	conn, _, err := dialer.Dial(addr, nil)
 	if err != nil {
 		if retry > 3 {
 			return err
 		}
 		time.Sleep(time.Second) // wait 1s to recreate w
-		return CreateWSConn(url, connInfo, retry+1)
+		return CreateWSConn(addr, connInfo, retry+1)
 	}
 	connInfo.Conn = conn
 	connInfo.Expire = time.Now().Add(time.Minute * 30)
