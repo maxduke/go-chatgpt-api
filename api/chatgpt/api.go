@@ -356,6 +356,7 @@ type rawDialer interface {
 
 func CreateWSConn(addr string, connInfo *api.ConnInfo, retry int) error {
 	dialer := websocket.Dialer{
+		HandshakeTimeout: 8 * time.Second,
 		NetDialTLSContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 			host, _, _ := net.SplitHostPort(addr)
 			config := &tls.Config{ServerName: host, OmitEmptyPsk: true}
@@ -446,7 +447,7 @@ func InitWSConn(token string, deviceId string, uuid string) error {
 		if err != nil {
 			return err
 		}
-		CreateWSConn(wssURL, connInfo, 0)
+		err = CreateWSConn(wssURL, connInfo, 0)
 		if err != nil {
 			return err
 		}
