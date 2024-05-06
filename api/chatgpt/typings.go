@@ -16,6 +16,7 @@ type CreateConversationRequest struct {
 	HistoryAndTrainingDisabled bool      `json:"history_and_training_disabled"`
 	AutoContinue               bool      `json:"auto_continue"`
 	Suggestions                []string  `json:"suggestions"`
+	WebsocketRequestId         string `json:"websocket_request_id"`
 }
 
 func (c *CreateConversationRequest) AddMessage(role string, content string) {
@@ -129,7 +130,6 @@ type ChatRequire struct {
 		Required bool   `json:"required"`
 		DX       string `json:"dx,omitempty"`
 	} `json:"arkose"`
-	Hardware int
 }
 
 type FileInfo struct {

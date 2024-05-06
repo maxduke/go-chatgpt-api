@@ -3,6 +3,11 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api:latest
 
+## 20240506
+调整POW以及更新部分接口域名
+
+参照 https://github.com/xqdoo00o/ChatGPT-to-API/compare/2b6ea6e2208f11fbdf760ba23c1f704993901242...85aafb4cd9af1ed09e2120abc9bdae42bbacd271
+
 ## 20240503
 后续计划移除imitate相关接口，有chat2api的需求的建议使用熊猫大佬的项目：
 

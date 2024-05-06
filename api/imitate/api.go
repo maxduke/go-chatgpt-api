@@ -223,6 +223,7 @@ func NewChatGPTRequest() chatgpt.CreateConversationRequest {
 		ParentMessageID:            uuid.NewString(),
 		Model:                      "text-davinci-002-render-sha",
 		HistoryAndTrainingDisabled: disable_history,
+		WebsocketRequestId:         uuid.NewString(),
 	}
 }
 
@@ -241,6 +242,8 @@ func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationR
 	if proofToken != "" {
 		req.Header.Set("Openai-Sentinel-Proof-Token", proofToken)
 	}
+	req.Header.Set("Origin", "https://chat.openai.com")
+	req.Header.Set("Referer", "https://chat.openai.com/c/"+request.ConversationID)
 	resp, err := api.Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, api.ReturnMessage(err.Error()))

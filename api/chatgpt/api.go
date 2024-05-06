@@ -22,6 +22,7 @@ import (
 	"github.com/bogdanfinn/tls-client/profiles"
 	tls "github.com/bogdanfinn/utls"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/crypto/sha3"
@@ -33,13 +34,23 @@ import (
 
 var (
 	answers             = map[string]string{}
-	cores               = []int{8, 12, 16, 24}
-	screens             = []int{3000, 4000, 6000}
 	timeLocation, _     = time.LoadLocation("Asia/Shanghai")
 	timeLayout          = "Mon Jan 2 2006 15:04:05"
+	cachedHardware = 0
 	cachedScripts       = []string{}
 	cachedDpl           = ""
+	cachedRequireProof = ""
 )
+
+func init() {
+	cores := []int{8, 12, 16, 24}
+	screens := []int{3000, 4000, 6000}
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	core := cores[rand.Intn(4)]
+	rand.New(rand.NewSource(time.Now().UnixNano()))
+	screen := screens[rand.Intn(3)]
+	cachedHardware = core + screen
+}
 
 func CreateConversation(c *gin.Context) {
 	var request CreateConversationRequest
@@ -114,6 +125,8 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	if proofToken != "" {
 		req.Header.Set("Openai-Sentinel-Proof-Token", proofToken)
 	}
+	req.Header.Set("Origin", "https://chat.openai.com")
+	req.Header.Set("Referer", "https://chat.openai.com/c/"+request.ConversationID)
 	resp, err := api.Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, api.ReturnMessage(err.Error()))
@@ -287,6 +300,7 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 			Action:          actionContinue,
 			ParentMessageID: continueParentMessageID,
 			ConversationID:  continueConversationID,
+			WebsocketRequestId: uuid.NewString(),
 		}
 		RenewTokenForRequest(&continueConversationRequest, dx)
 		resp, done := sendConversationRequest(c, continueConversationRequest, accessToken, deviceId, chat_token, proofToken)
@@ -487,8 +501,10 @@ func InitWSConn(token string, deviceId string, uuid string) error {
 }
 
 func CheckRequire(access_token string, deviceId string) *ChatRequire {
-	proof, hardware := generateAnswer(strconv.FormatFloat(rand.Float64(), 'f', -1, 64), "0", 0)
-	body := bytes.NewBuffer([]byte(`{"p":"` + "gAAAAAC" + proof + `"}`))
+	if cachedRequireProof == "" {
+		cachedRequireProof = "gAAAAAC" + generateAnswer(strconv.FormatFloat(rand.Float64(), 'f', -1, 64), "0")
+	}
+	body := bytes.NewBuffer([]byte(`{"p":"` + cachedRequireProof + `"}`))
 	var apiUrl string
 	apiUrl = "https://chat.openai.com/backend-api/sentinel/chat-requirements"
 	request, err := NewRequest(http.MethodPost, apiUrl, body, access_token, deviceId)
@@ -506,7 +522,6 @@ func CheckRequire(access_token string, deviceId string) *ChatRequire {
 	if err != nil {
 		return nil
 	}
-	require.Hardware = hardware
 	return &require
 }
 
@@ -521,19 +536,20 @@ func getParseTime() string {
 	now = now.In(timeLocation)
 	return now.Format(timeLayout) + " GMT+0800 (中国标准时间)"
 }
-func getDpl() bool {
-	if len(cachedScripts) != 0 {
-		return true
+func GetDpl() {
+	if len(cachedScripts) > 0 {
+		return
 	}
-	request, err := http.NewRequest(http.MethodGet, "https://chat.openai.com/", nil)
+	request, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/?oai-dm=1", nil)
 	request.Header.Set("User-Agent", api.UserAgent)
 	request.Header.Set("Accept", "*/*")
+	request.Header.Set("Cookie", "oai-dm-tgt-c-240329=2024-04-02")
 	if err != nil {
-		return false
+		return
 	}
 	response, err := api.Client.Do(request)
 	if err != nil {
-		return false
+		return
 	}
 	defer response.Body.Close()
 	doc, _ := goquery.NewDocumentFromReader(response.Body)
@@ -550,45 +566,40 @@ func getDpl() bool {
 			}
 		}
 	})
-	return len(cachedScripts) != 0
-}
-func getConfig(hardware int) []interface{} {
-	if hardware == 0 {
-		rand.New(rand.NewSource(time.Now().UnixNano()))
-		core := cores[rand.Intn(4)]
-		rand.New(rand.NewSource(time.Now().UnixNano()))
-		screen := screens[rand.Intn(3)]
-		hardware = core + screen
+	if len(cachedScripts) == 0 {
+		cachedScripts = append(cachedScripts, "https://cdn.oaistatic.com/_next/static/chunks/polyfills-78c92fac7aa8fdd8.js?dpl=baf36960d05dde6d8b941194fa4093fb5cb78c6a")
+		cachedDpl = "dpl=baf36960d05dde6d8b941194fa4093fb5cb78c6a"
 	}
+}
+func getConfig() []interface{} {	
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	script := cachedScripts[rand.Intn(len(cachedScripts))]
-	return []interface{}{hardware, getParseTime(), int64(4294705152), 0, api.UserAgent, script, cachedDpl, "zh-CN", "zh-CN,en,en-GB,en-US"}
+	return []interface{}{cachedHardware, getParseTime(), int64(4294705152), 0, api.UserAgent, script, cachedDpl, "zh-CN", "zh-CN,en,en-GB,en-US", 0}
 }
 
 func CalcProofToken(require *ChatRequire) string {
-	proof, _ := generateAnswer(require.Proof.Seed, require.Proof.Difficulty, require.Hardware)
+	proof := generateAnswer(require.Proof.Seed, require.Proof.Difficulty)
 	return "gAAAAAB" + proof
 }
 
-func generateAnswer(seed string, diff string, hardware int) (string, int) {
-	if !getDpl() {
-		return "wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D" + base64.StdEncoding.EncodeToString([]byte(`"`+seed+`"`)), 0
-	}
-	config := getConfig(hardware)
+func generateAnswer(seed string, diff string) string {
+	GetDpl()
+	config := getConfig()
 	diffLen := len(diff)
 	hasher := sha3.New512()
-	for i := 0; i < 1000000; i++ {
+	for i := 0; i < 500000; i++ {
 		config[3] = i
+		config[9] = (i + 2) / 2
 		json, _ := json.Marshal(config)
 		base := base64.StdEncoding.EncodeToString(json)
 		hasher.Write([]byte(seed + base))
 		hash := hasher.Sum(nil)
 		hasher.Reset()
 		if hex.EncodeToString(hash[:diffLen])[:diffLen] <= diff {
-			return base, config[0].(int)
+			return base
 		}
 	}
-	return "wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D" + base64.StdEncoding.EncodeToString([]byte(`"`+seed+`"`)), config[0].(int)
+	return "wQ8Lk5FbGpA2NcR9dShT6gYjU7VxZ4D" + base64.StdEncoding.EncodeToString([]byte(`"`+seed+`"`))
 }
 
 func RenewTokenForRequest(request *CreateConversationRequest, dx string) {
