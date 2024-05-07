@@ -4,7 +4,7 @@
 Docker image: maxduke/go-chatgpt-api:latest
 
 ## 20240507
-调整backend域名  chat.openai.com = chatgpt.com
+调整backend域名  chat.openai.com => chatgpt.com
 
 可能需要重新抓取har
 
