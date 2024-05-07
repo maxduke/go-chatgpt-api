@@ -24,7 +24,7 @@ import (
 const (
 	ChatGPTApiPrefix    = "/chatgpt"
 	ImitateApiPrefix    = "/imitate/v1"
-	ChatGPTApiUrlPrefix = "https://chat.openai.com"
+	ChatGPTApiUrlPrefix = "https://chatgpt.com"
 
 	PlatformApiPrefix    = "/platform"
 	PlatformApiUrlPrefix = "https://api.openai.com"
@@ -169,6 +169,7 @@ func Proxy(c *gin.Context) {
 	req.Header.Set("Oai-Language", Language)
 	req.Header.Set("Oai-Device-Id", OAIDID)
 	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID+";")
+	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-dm-tgt-c-240329=2024-04-02;")
 	resp, err := Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ReturnMessage(err.Error()))
@@ -343,12 +344,13 @@ func GetIDs(accessToken string) (string, string) {
 	// generate device id
 	oaidid = uuid.NewSHA1(uuid.MustParse("12345678-1234-5678-1234-567812345678"), []byte(accessToken)).String()
 
-	// Make request to https://chat.openai.com/backend-api/models
-	req, _ := http.NewRequest("GET", "https://chat.openai.com/backend-api/models?history_and_training_disabled=false", nil)
+	// Make request to https://chatgpt.com/backend-api/models
+	req, _ := http.NewRequest("GET", ChatGPTApiUrlPrefix+"/backend-api/models?history_and_training_disabled=false", nil)
 	// Add headers
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Add("User-Agent", UserAgent)
 	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+oaidid+";")
+	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-dm-tgt-c-240329=2024-04-02;")
 
 	resp, err := NewHttpClient().Do(req)
 	if err != nil {

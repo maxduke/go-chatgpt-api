@@ -242,8 +242,8 @@ func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationR
 	if proofToken != "" {
 		req.Header.Set("Openai-Sentinel-Proof-Token", proofToken)
 	}
-	req.Header.Set("Origin", "https://chat.openai.com")
-	req.Header.Set("Referer", "https://chat.openai.com/c/"+request.ConversationID)
+	req.Header.Set("Origin", api.ChatGPTApiUrlPrefix)
+	req.Header.Set("Referer", api.ChatGPTApiUrlPrefix+"/c/"+request.ConversationID)
 	resp, err := api.Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, api.ReturnMessage(err.Error()))
@@ -279,6 +279,7 @@ func GetImageSource(wg *sync.WaitGroup, url string, prompt string, token string,
 		request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-did="+api.OAIDID+";")
 		request.Header.Set("Oai-Device-Id", api.OAIDID)
 	}
+	request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-dm-tgt-c-240329=2024-04-02;")
 	request.Header.Set("User-Agent", api.UserAgent)
 	request.Header.Set("Accept", "*/*")
 	if token != "" {
@@ -474,7 +475,7 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 				continue
 			}
 			if original_response.Message.Content.ContentType == "multimodal_text" {
-				apiUrl := "https://chat.openai.com/backend-api/files/"
+				apiUrl := api.ChatGPTApiUrlPrefix+"/backend-api/files/"
 				FILES_REVERSE_PROXY := os.Getenv("FILES_REVERSE_PROXY")
 				if FILES_REVERSE_PROXY != "" {
 					apiUrl = FILES_REVERSE_PROXY
@@ -557,7 +558,7 @@ type urlAttr struct {
 }
 
 func getURLAttribution(access_token string, puid string, deviceId string, url string) string {
-	request, err := chatgpt.NewRequest(http.MethodPost, "https://chat.openai.com/backend-api/attributions", bytes.NewBuffer([]byte(`{"urls":["`+url+`"]}`)), access_token, deviceId)
+	request, err := chatgpt.NewRequest(http.MethodPost, api.ChatGPTApiUrlPrefix+"/backend-api/attributions", bytes.NewBuffer([]byte(`{"urls":["`+url+`"]}`)), access_token, deviceId)
 	if err != nil {
 		return ""
 	}

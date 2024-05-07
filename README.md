@@ -3,6 +3,11 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api:latest
 
+## 20240507
+调整backend域名  chat.openai.com = chatgpt.com
+
+可能需要重新抓取har
+
 ## 20240506
 调整POW以及更新部分接口域名
 

@@ -125,8 +125,8 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	if proofToken != "" {
 		req.Header.Set("Openai-Sentinel-Proof-Token", proofToken)
 	}
-	req.Header.Set("Origin", "https://chat.openai.com")
-	req.Header.Set("Referer", "https://chat.openai.com/c/"+request.ConversationID)
+	req.Header.Set("Origin", api.ChatGPTApiUrlPrefix)
+	req.Header.Set("Referer", api.ChatGPTApiUrlPrefix+"/c/"+request.ConversationID)
 	resp, err := api.Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, api.ReturnMessage(err.Error()))
@@ -319,12 +319,12 @@ func NewRequest(method string, url string, body io.Reader, token string, deviceI
 	}
 	request.Header.Set("User-Agent", api.UserAgent)
 	request.Header.Set("Accept", "*/*")
-	request.Header.Set("Oai-Device-Id", deviceId)
 	if deviceId != "" {
 		request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-did="+deviceId+";")
 		request.Header.Set("Oai-Device-Id", deviceId)
 	}
 	request.Header.Set("Oai-Language", api.Language)
+	request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-dm-tgt-c-240329=2024-04-02;")
 	if token != "" {
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -338,7 +338,7 @@ func NewRequest(method string, url string, body io.Reader, token string, deviceI
 }
 
 func getWSURL(token string, deviceId string, retry int) (string, error) {
-	request, err := NewRequest(http.MethodPost, "https://chat.openai.com/backend-api/register-websocket", nil, token, deviceId)
+	request, err := NewRequest(http.MethodPost, api.ChatGPTApiUrlPrefix+"/backend-api/register-websocket", nil, token, deviceId)
 	if err != nil {
 		return "", err
 	}
@@ -506,7 +506,7 @@ func CheckRequire(access_token string, deviceId string) *ChatRequire {
 	}
 	body := bytes.NewBuffer([]byte(`{"p":"` + cachedRequireProof + `"}`))
 	var apiUrl string
-	apiUrl = "https://chat.openai.com/backend-api/sentinel/chat-requirements"
+	apiUrl = api.ChatGPTApiUrlPrefix+"/backend-api/sentinel/chat-requirements"
 	request, err := NewRequest(http.MethodPost, apiUrl, body, access_token, deviceId)
 	if err != nil {
 		return nil
@@ -543,7 +543,6 @@ func GetDpl() {
 	request, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/?oai-dm=1", nil)
 	request.Header.Set("User-Agent", api.UserAgent)
 	request.Header.Set("Accept", "*/*")
-	request.Header.Set("Cookie", "oai-dm-tgt-c-240329=2024-04-02")
 	if err != nil {
 		return
 	}

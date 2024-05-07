@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	healthCheckUrl         = "https://chat.openai.com/backend-api/accounts/check"
+	healthCheckUrl         = api.ChatGPTApiUrlPrefix+"/backend-api/accounts/check"
 	infoHCnotEnable        = "Health Check is disabled"
 	errorHintBlock         = "looks like you have bean blocked by OpenAI, please change to a new IP or have a try with WARP"
 	errorHintFailedToStart = "failed to start, please try again later: %s"
