@@ -196,6 +196,7 @@ func convertAPIRequest(api_request APIRequest, requireArk bool, dx string) (chat
 		// 		val := api_request.Model[12:]
 		// 		chatgpt_request.ConversationMode.Kind = "gizmo_interaction"
 		// 		chatgpt_request.ConversationMode.GizmoId = val
+		//      chatgpt_request.Model = "text-davinci-002-render-sha"
 		// 	}
 		// }
 	}
@@ -317,10 +318,10 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 	var original_response ChatGPTResponse
 	var isRole = true
 	var waitSource = false
-	var isEnd = false
 	var imgSource []string
 	var isWSS = false
 	var convId string
+	var msgId string
 	var respId string
 	var wssUrl string
 	var connInfo *api.ConnInfo
@@ -436,11 +437,18 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 			if original_response.Message.Metadata.MessageType != "next" && original_response.Message.Metadata.MessageType != "continue" || !strings.HasSuffix(original_response.Message.Content.ContentType, "text") {
 				continue
 			}
+			if original_response.Message.Content.ContentType == "text" && original_response.Message.ID != msgId {
+				if msgId == "" && original_response.Message.Content.Parts[0].(string) == "" {
+					msgId = original_response.Message.ID
+				} else {
+					continue
+				}
+			}
 			if original_response.Message.EndTurn != nil {
 				if waitSource {
 					waitSource = false
 				}
-				isEnd = true
+				msgId = ""
 			}
 			if len(original_response.Message.Metadata.Citations) != 0 {
 				r := []rune(original_response.Message.Content.Parts[0].(string))
@@ -504,11 +512,7 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 				response_string = ConvertToString(&original_response, &previous_text, isRole)
 			}
 			if response_string == "" {
-				if isEnd {
-					goto endProcess
-				} else {
-					continue
-				}
+				continue
 			}
 			if response_string == "【" {
 				waitSource = true
@@ -521,7 +525,6 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 					return "", nil
 				}
 			}
-		endProcess:
 			// Flush the response writer buffer to ensure that the client receives each line as it's written
 			c.Writer.Flush()
 
@@ -531,12 +534,10 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 				}
 				finish_reason = original_response.Message.Metadata.FinishDetails.Type
 			}
-			if isEnd {
+			} else {
 				if stream {
 					final_line := StopChunk(finish_reason)
 					c.Writer.WriteString("data: " + final_line.String() + "\n\n")
-				}
-				break
 			}
 		}
 	}
