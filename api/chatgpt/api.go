@@ -540,6 +540,8 @@ func GetDpl() {
 	if len(cachedScripts) > 0 {
 		return
 	}
+	cachedScripts = append(cachedScripts, "https://cdn.oaistatic.com/_next/static/chunks/9598-0150caea9526d55d.js?dpl=abad631f183104e6c8a323392d7bc30b933c5c7c")
+	cachedDpl = "dpl=abad631f183104e6c8a323392d7bc30b933c5c7c"
 	request, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/?oai-dm=1", nil)
 	request.Header.Set("User-Agent", api.UserAgent)
 	request.Header.Set("Accept", "*/*")
@@ -552,11 +554,11 @@ func GetDpl() {
 	}
 	defer response.Body.Close()
 	doc, _ := goquery.NewDocumentFromReader(response.Body)
-	cachedScripts = nil
+	scripts := []string{}
 	doc.Find("script[src]").Each(func(i int, s *goquery.Selection) {
 		src, exists := s.Attr("src")
 		if exists {
-			cachedScripts = append(cachedScripts, src)
+			scripts = append(scripts, src)
 			if cachedDpl == "" {
 				idx := strings.Index(src, "dpl")
 				if idx >= 0 {
@@ -565,9 +567,8 @@ func GetDpl() {
 			}
 		}
 	})
-	if len(cachedScripts) == 0 {
-		cachedScripts = append(cachedScripts, "https://cdn.oaistatic.com/_next/static/chunks/polyfills-78c92fac7aa8fdd8.js?dpl=baf36960d05dde6d8b941194fa4093fb5cb78c6a")
-		cachedDpl = "dpl=baf36960d05dde6d8b941194fa4093fb5cb78c6a"
+	if len(scripts) != 0 {
+		cachedScripts = scripts
 	}
 }
 func getConfig() []interface{} {	
