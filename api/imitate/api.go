@@ -534,10 +534,13 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 				}
 				finish_reason = original_response.Message.Metadata.FinishDetails.Type
 			}
-			} else {
-				if stream {
-					final_line := StopChunk(finish_reason)
-					c.Writer.WriteString("data: " + final_line.String() + "\n\n")
+		} else {
+			if stream {
+				final_line := StopChunk(finish_reason)
+				c.Writer.WriteString("data: " + final_line.String() + "\n\n")
+			}
+			if isWSS {
+				break
 			}
 		}
 	}
