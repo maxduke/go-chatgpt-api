@@ -544,10 +544,15 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 			}
 		}
 	}
+	respText := strings.Join(imgSource, "")
+ 	if respText != "" {
+ 		respText += "\n"
+ 	}
+ 	respText += previous_text.Text
 	if !max_tokens {
-		return strings.Join(imgSource, "") + previous_text.Text, nil
+		return respText, nil
 	}
-	return strings.Join(imgSource, "") + previous_text.Text, &ContinueInfo{
+	return respText, &ContinueInfo{
 		ConversationID: original_response.ConversationID,
 		ParentID:       original_response.Message.ID,
 	}
