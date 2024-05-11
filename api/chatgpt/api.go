@@ -107,7 +107,7 @@ func CreateConversation(c *gin.Context) {
 		return
 	}
 
-	handleConversationResponse(c, resp, request, authHeader, api.OAIDID, chat_require.Token, proofToken, chat_require.Arkose.DX)
+	handleConversationResponse(c, resp, request, authHeader, api.OAIDID)
 }
 
 func sendConversationRequest(c *gin.Context, request CreateConversationRequest, accessToken string, deviceId string, chat_token string, proofToken string) (*http.Response, bool) {
@@ -157,7 +157,7 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	return resp, false
 }
 
-func handleConversationResponse(c *gin.Context, resp *http.Response, request CreateConversationRequest, accessToken string, deviceId string, chat_token string, proofToken string, dx string) {
+func handleConversationResponse(c *gin.Context, resp *http.Response, request CreateConversationRequest, accessToken string, deviceId string) {
 	c.Writer.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 
 	isMaxTokens := false
@@ -302,13 +302,19 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 			ConversationID:  continueConversationID,
 			WebsocketRequestId: uuid.NewString(),
 		}
-		RenewTokenForRequest(&continueConversationRequest, dx)
-		resp, done := sendConversationRequest(c, continueConversationRequest, accessToken, deviceId, chat_token, proofToken)
+		chat_require := CheckRequire(accessToken, deviceId)
+ 		if chat_require.Proof.Required {
+ 			proofToken := CalcProofToken(chat_require)
+ 		}
+		if chat_require.Arkose.Required {
+			RenewTokenForRequest(&continueConversationRequest, chat_require.Arkose.DX)
+		}
+		resp, done := sendConversationRequest(c, continueConversationRequest, accessToken, deviceId, chat_require.Token, proofToken)
 		if done {
 			return
 		}
 
-		handleConversationResponse(c, resp, continueConversationRequest, accessToken, deviceId, chat_token, proofToken, dx)
+		handleConversationResponse(c, resp, continueConversationRequest, accessToken, deviceId)
 	}
 }
 
