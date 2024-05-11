@@ -164,6 +164,8 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 	continueParentMessageID := ""
 	continueConversationID := ""
 
+	var proofToken string
+
 	defer resp.Body.Close()
 	reader := bufio.NewReader(resp.Body)
 	readStr, _ := reader.ReadString(' ')
@@ -304,7 +306,7 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 		}
 		chat_require := CheckRequire(accessToken, deviceId)
  		if chat_require.Proof.Required {
- 			proofToken := CalcProofToken(chat_require)
+ 			proofToken = CalcProofToken(chat_require)
  		}
 		if chat_require.Arkose.Required {
 			RenewTokenForRequest(&continueConversationRequest, chat_require.Arkose.DX)
