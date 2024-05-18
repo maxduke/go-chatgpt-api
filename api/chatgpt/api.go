@@ -582,7 +582,7 @@ func GetDpl() {
 func getConfig() []interface{} {	
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	script := cachedScripts[rand.Intn(len(cachedScripts))]
-	return []interface{}{cachedHardware, getParseTime(), int64(4294705152), 0, api.UserAgent, script, cachedDpl, "zh-CN", "zh-CN,en,en-GB,en-US", 0}
+	return []interface{}{cachedHardware, getParseTime(), int64(4294705152), 0, userAgent, script, cachedDpl, api.Language, api.Language, 0, "webkitGetUserMedia−function webkitGetUserMedia() { [native code] }", "location", "ontransitionend"}
 }
 
 func CalcProofToken(require *ChatRequire) string {
