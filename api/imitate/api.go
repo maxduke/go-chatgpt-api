@@ -100,10 +100,19 @@ func CreateChatCompletions(c *gin.Context) {
 		proofToken = chatgpt.CalcProofToken(chat_require)
 	}
 
-	// Convert the chat request to a ChatGPT request
-	translated_request := convertAPIRequest(original_request, chat_require.Arkose.Required, chat_require.Arkose.DX)
+	var arkoseToken string
+	if chat_require.Arkose.Required {
+		arkoseToken, err := chatgpt.GetArkoseTokenForModel(original_request.Model, chat_require.Arkose.DX)
+		if err != nil || arkoseToken == "" {
+			c.AbortWithStatusJSON(http.StatusForbidden, api.ReturnMessage(err.Error()))
+			return
+		}
+	}
 
-	response, done := sendConversationRequest(c, translated_request, token, api.OAIDID, chat_require.Token, proofToken)
+	// Convert the chat request to a ChatGPT request
+	translated_request := convertAPIRequest(original_request)
+
+	response, done := sendConversationRequest(c, translated_request, token, api.OAIDID, arkoseToken, chat_require.Token, proofToken)
 	if done {
 		return
 	}
@@ -139,9 +148,13 @@ func CreateChatCompletions(c *gin.Context) {
  			proofToken = chatgpt.CalcProofToken(chat_require)
  		}
 		if chat_require.Arkose.Required {
-			chatgpt.RenewTokenForRequest(&translated_request, chat_require.Arkose.DX)
+			arkoseToken, err := chatgpt.GetArkoseTokenForModel(translated_request.Model, chat_require.Arkose.DX)
+			if err != nil || arkoseToken == "" {
+				c.AbortWithStatusJSON(http.StatusForbidden, api.ReturnMessage(err.Error()))
+				return
+			}
 		}
-		response, done = sendConversationRequest(c, translated_request, token, api.OAIDID, chat_require.Token, proofToken)
+		response, done = sendConversationRequest(c, translated_request, token, api.OAIDID, arkoseToken, chat_require.Token, proofToken)
 
 		if done {
 			return
@@ -183,15 +196,12 @@ func generateId() string {
 	return "chatcmpl-" + id
 }
 
-func convertAPIRequest(api_request APIRequest, requireArk bool, dx string) (chatgpt.CreateConversationRequest) {
+func convertAPIRequest(api_request APIRequest) (chatgpt.CreateConversationRequest) {
 	chatgpt_request := NewChatGPTRequest()
 
-	var api_version int
 	if strings.HasPrefix(api_request.Model, "gpt-3.5") {
-		api_version = 3
 		chatgpt_request.Model = "text-davinci-002-render-sha"
 	} else if strings.HasPrefix(api_request.Model, "gpt-4") {
-		api_version = 4
 		if api_request.Model == "gpt-4o" {
 			chatgpt_request.Model = api_request.Model
 		} else {
@@ -206,14 +216,6 @@ func convertAPIRequest(api_request APIRequest, requireArk bool, dx string) (chat
 		// 		chatgpt_request.ConversationMode.GizmoId = val
 		// 	}
 		// }
-	}
-	if requireArk {
-		token, err := api.GetArkoseToken(api_version, dx)
-		if err == nil {
-			chatgpt_request.ArkoseToken = token
-		} else {
-			fmt.Println("Error getting Arkose token: ", err)
-		}
 	}
 	for _, api_message := range api_request.Messages {
 		if api_message.Role == "system" {
@@ -236,14 +238,14 @@ func NewChatGPTRequest() chatgpt.CreateConversationRequest {
 	}
 }
 
-func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationRequest, accessToken string, deviceId string, chat_token string, proofToken string) (*http.Response, bool) {
+func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationRequest, accessToken string, deviceId string, arkoseToken string, chat_token string, proofToken string) (*http.Response, bool) {
 	apiUrl := api.ChatGPTApiUrlPrefix+"/backend-api/conversation"
 	jsonBytes, _ := json.Marshal(request)
 	req, err := chatgpt.NewRequest(http.MethodPost, apiUrl, bytes.NewReader(jsonBytes), accessToken, deviceId)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "text/event-stream")
-	if request.ArkoseToken != "" {
-		req.Header.Set("Openai-Sentinel-Arkose-Token", request.ArkoseToken)
+	if arkoseToken != "" {
+		req.Header.Set("Openai-Sentinel-Arkose-Token", arkoseToken)
 	}
 	if chat_token != "" {
 		req.Header.Set("Openai-Sentinel-Chat-Requirements-Token", chat_token)
