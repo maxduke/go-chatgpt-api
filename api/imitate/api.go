@@ -230,6 +230,7 @@ func NewChatGPTRequest() chatgpt.CreateConversationRequest {
 		Action:                     "next",
 		ParentMessageID:            uuid.NewString(),
 		Model:                      "text-davinci-002-render-sha",
+		ForceUseSse:                true,
 		HistoryAndTrainingDisabled: disable_history,
 		WebsocketRequestId:         uuid.NewString(),
 	}

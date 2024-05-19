@@ -102,6 +102,9 @@ func CreateConversation(c *gin.Context) {
 		proofToken = CalcProofToken(chat_require)
 	}
 
+	// TEST: force to use SSE
+	request.ForceUseSse = true
+
 	resp, done := sendConversationRequest(c, request, authHeader, api.OAIDID, chat_require.Token, proofToken)
 	if done {
 		return
@@ -295,6 +298,7 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 
 	if isMaxTokens && request.AutoContinue {
 		continueConversationRequest := CreateConversationRequest{
+			ForceUseSse:                request.ForceUseSse,
 			HistoryAndTrainingDisabled: request.HistoryAndTrainingDisabled,
 			Model:                      request.Model,
 			TimezoneOffsetMin:          request.TimezoneOffsetMin,
