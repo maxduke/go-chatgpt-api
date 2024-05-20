@@ -114,6 +114,8 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	if arkoseToken != "" {
 		req.Header.Set("Openai-Sentinel-Arkose-Token", arkoseToken)
 	}
+	// temp: log
+	fmt.Println(arkoseToken)
 	if chat_token != "" {
 		req.Header.Set("Openai-Sentinel-Chat-Requirements-Token", chat_token)
 	}
@@ -622,9 +624,5 @@ func GetArkoseTokenForModel(model string, dx string) (string, error) {
 	} else {
 		api_version = 3
 	}
-	arkoseToken, err := api.GetArkoseToken(api_version, dx)
-	if err != nil {
-		fmt.Println("Error getting Arkose token: ", err)
-	}
-	return arkoseToken, err
+	return api.GetArkoseToken(api_version, dx)
 }
