@@ -81,8 +81,12 @@ func CreateConversation(c *gin.Context) {
 	chat_require := CheckRequire(authHeader, api.OAIDID)
 
 	arkoseToken := c.GetHeader(api.ArkoseTokenHeader)
+	// temp: log
+	fmt.Println("1:"+arkoseToken)
 	if chat_require.Arkose.Required == true && arkoseToken == "" {
 		arkoseToken, err := GetArkoseTokenForModel(request.Model, chat_require.Arkose.DX)
+		// temp: log
+		fmt.Println("2:"+arkoseToken)
 		if err != nil || arkoseToken == "" {
 			c.AbortWithStatusJSON(http.StatusForbidden, api.ReturnMessage(err.Error()))
 			return
@@ -97,6 +101,8 @@ func CreateConversation(c *gin.Context) {
 	// TEST: force to use SSE
 	request.ForceUseSse = true
 
+	// temp: log
+	fmt.Println("3:"+arkoseToken)
 	resp, done := sendConversationRequest(c, request, authHeader, api.OAIDID, arkoseToken, chat_require.Token, proofToken)
 	if done {
 		return
@@ -111,11 +117,11 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	req, err := NewRequest(http.MethodPost, apiUrl, bytes.NewReader(jsonBytes), accessToken, deviceId)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "text/event-stream")
+	// temp: log
+	fmt.Println("4:"+arkoseToken)
 	if arkoseToken != "" {
 		req.Header.Set("Openai-Sentinel-Arkose-Token", arkoseToken)
 	}
-	// temp: log
-	fmt.Println(arkoseToken)
 	if chat_token != "" {
 		req.Header.Set("Openai-Sentinel-Chat-Requirements-Token", chat_token)
 	}

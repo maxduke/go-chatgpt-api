@@ -102,6 +102,8 @@ func CreateChatCompletions(c *gin.Context) {
 
 	var arkoseToken string
 	if chat_require.Arkose.Required {
+		// temp: log
+		fmt.Println("a:"+arkoseToken)
 		arkoseToken, err := chatgpt.GetArkoseTokenForModel(original_request.Model, chat_require.Arkose.DX)
 		if err != nil || arkoseToken == "" {
 			c.AbortWithStatusJSON(http.StatusForbidden, api.ReturnMessage(err.Error()))
@@ -112,6 +114,8 @@ func CreateChatCompletions(c *gin.Context) {
 	// Convert the chat request to a ChatGPT request
 	translated_request := convertAPIRequest(original_request)
 
+	// temp: log
+	fmt.Println("b:"+arkoseToken)
 	response, done := sendConversationRequest(c, translated_request, token, api.OAIDID, arkoseToken, chat_require.Token, proofToken)
 	if done {
 		return
@@ -244,6 +248,8 @@ func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationR
 	req, err := chatgpt.NewRequest(http.MethodPost, apiUrl, bytes.NewReader(jsonBytes), accessToken, deviceId)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "text/event-stream")
+	// temp: log
+	fmt.Println("c:"+arkoseToken)
 	if arkoseToken != "" {
 		req.Header.Set("Openai-Sentinel-Arkose-Token", arkoseToken)
 	}
