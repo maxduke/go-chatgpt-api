@@ -7,7 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -80,13 +79,11 @@ func CreateConversation(c *gin.Context) {
 	}
 	chat_require := CheckRequire(authHeader, api.OAIDID)
 
-	arkoseToken := c.GetHeader(api.ArkoseTokenHeader)
-	// temp: log
-	fmt.Println("1:"+arkoseToken)
+	var arkoseToken string
+	arkoseToken = c.GetHeader(api.ArkoseTokenHeader)
 	if chat_require.Arkose.Required == true && arkoseToken == "" {
-		arkoseToken, err := GetArkoseTokenForModel(request.Model, chat_require.Arkose.DX)
-		// temp: log
-		fmt.Println("2:"+arkoseToken)
+		token, err := GetArkoseTokenForModel(request.Model, chat_require.Arkose.DX)
+		arkoseToken = token
 		if err != nil || arkoseToken == "" {
 			c.AbortWithStatusJSON(http.StatusForbidden, api.ReturnMessage(err.Error()))
 			return
@@ -101,8 +98,6 @@ func CreateConversation(c *gin.Context) {
 	// TEST: force to use SSE
 	request.ForceUseSse = true
 
-	// temp: log
-	fmt.Println("3:"+arkoseToken)
 	resp, done := sendConversationRequest(c, request, authHeader, api.OAIDID, arkoseToken, chat_require.Token, proofToken)
 	if done {
 		return
@@ -117,8 +112,6 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	req, err := NewRequest(http.MethodPost, apiUrl, bytes.NewReader(jsonBytes), accessToken, deviceId)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "text/event-stream")
-	// temp: log
-	fmt.Println("4:"+arkoseToken)
 	if arkoseToken != "" {
 		req.Header.Set("Openai-Sentinel-Arkose-Token", arkoseToken)
 	}
@@ -318,7 +311,8 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
  			proofToken = CalcProofToken(chat_require)
  		}
 		if chat_require.Arkose.Required {
-			arkoseToken, err := GetArkoseTokenForModel(continueConversationRequest.Model, chat_require.Arkose.DX)
+			token, err := GetArkoseTokenForModel(continueConversationRequest.Model, chat_require.Arkose.DX)
+			arkoseToken = token
 			if err != nil || arkoseToken == "" {
 				c.AbortWithStatusJSON(http.StatusForbidden, api.ReturnMessage(err.Error()))
 				return
