@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -593,6 +594,8 @@ func getConfig() []interface{} {
 }
 
 func CalcProofToken(require *ChatRequire) string {
+	// temp: log difficulity
+	fmt.Println("POW Difficulty: "+require.Proof.Difficulty)
 	proof := generateAnswer(require.Proof.Seed, require.Proof.Difficulty)
 	return "gAAAAAB" + proof
 }
