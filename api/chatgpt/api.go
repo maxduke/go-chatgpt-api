@@ -126,7 +126,7 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	if request.ConversationID != "" {
 		req.Header.Set("Referer", api.ChatGPTApiUrlPrefix+"/c/"+request.ConversationID)
 	} else {
-		req.Header.Set("Referer", api.ChatGPTApiUrlPrefix)
+		req.Header.Set("Referer", api.ChatGPTApiUrlPrefix+"/")
 	}	
 	resp, err := api.Client.Do(req)
 	if err != nil {
@@ -528,6 +528,8 @@ func CheckRequire(access_token string, deviceId string) *ChatRequire {
 		return nil
 	}
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Origin", api.ChatGPTApiUrlPrefix)
+	request.Header.Set("Referer", api.ChatGPTApiUrlPrefix+"/")
 	response, err := api.Client.Do(request)
 	if err != nil {
 		return nil
