@@ -32,6 +32,7 @@ const (
 	defaultErrorMessageKey             = "errorMessage"
 	AuthorizationHeader                = "Authorization"
 	XAuthorizationHeader               = "X-Authorization"
+	ArkoseTokenHeader                  = "Openai-Sentinel-Arkose-Token"
 	ContentType                        = "application/x-www-form-urlencoded"
 	DefaultUserAgent                   = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 	Auth0Url                           = "https://auth0.openai.com"
