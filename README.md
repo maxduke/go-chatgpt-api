@@ -3,6 +3,10 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api:latest
 
+## 20240521
+- 调整生成刷新 deviceID 逻辑
+- 增加log: POW difficulty
+
 ## 20240520
 - TEST: 尝试强制使用SSE，从而避免WSS的各种问题 （效果未知）
 - 从request payload中移除arkoseToken （现在官网只在request header中有）

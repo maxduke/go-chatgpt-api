@@ -116,13 +116,7 @@ func init() {
 	}...)
 	ArkoseClient = getHttpClient()
 
-	// get device id from env.
-	OAIDID = os.Getenv("OPENAI_DEVICE_ID")
-	if OAIDID == "" {
-		// generate device id
-		OAIDID = uuid.NewSHA1(uuid.MustParse("12345678-1234-5678-1234-567812345678"), []byte(accessToken)).String()
-	}
-	setupPUID()
+	setupIDs()
 }
 
 func NewHttpClient() tls_client.HttpClient {
@@ -218,7 +212,10 @@ func GetArkoseToken(api_version int, dx string) (string, error) {
 	return funcaptcha.GetOpenAIToken(api_version, PUID, dx, ProxyUrl)
 }
 
-func setupPUID() {
+func setupIDs() {
+	// get device id from env.
+	OAIDID = os.Getenv("OPENAI_DEVICE_ID")
+
 	username := os.Getenv("OPENAI_EMAIL")
 	password := os.Getenv("OPENAI_PASSWORD")
 	refreshtoken := os.Getenv("OPENAI_REFRESH_TOKEN")
@@ -280,6 +277,11 @@ func setupPUID() {
 		PUID = os.Getenv("PUID")
 		IMITATE_accessToken = os.Getenv("IMITATE_ACCESS_TOKEN")
 	}
+
+	if OAIDID == "" && accessToken != "" {
+		// generate device id
+		OAIDID = uuid.NewSHA1(uuid.MustParse("12345678-1234-5678-1234-567812345678"), []byte(accessToken)).String()
+	}
 }
 
 func RefreshAccessToken(refreshToken string) string {
@@ -326,7 +328,7 @@ func GetPUID(accessToken string) string {
 	// Check if user has access token
 	if accessToken == "" {
 		logger.Error("GetPUID: Missing access token")
-		return "", ""
+		return ""
 	}
 
 	// Make request to https://chatgpt.com/backend-api/models
@@ -340,12 +342,12 @@ func GetPUID(accessToken string) string {
 	resp, err := NewHttpClient().Do(req)
 	if err != nil {
 		logger.Error("GetPUID: Missing access token")
-		return "", ""
+		return ""
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		logger.Error(fmt.Sprintf("GetPUID: Server responded with status code: %d", resp.StatusCode))
-		return "", ""
+		return ""
 	}
 	// Find `_puid` cookie in response
 	for _, cookie := range resp.Cookies() {
