@@ -278,9 +278,9 @@ func setupIDs() {
 		IMITATE_accessToken = os.Getenv("IMITATE_ACCESS_TOKEN")
 	}
 
-	if OAIDID == "" && accessToken != "" {
+	if OAIDID == "" && IMITATE_accessToken != "" {
 		// generate device id
-		OAIDID = uuid.NewSHA1(uuid.MustParse("12345678-1234-5678-1234-567812345678"), []byte(accessToken)).String()
+		OAIDID = uuid.NewSHA1(uuid.MustParse("12345678-1234-5678-1234-567812345678"), []byte(IMITATE_accessToken)).String()
 	}
 }
 
