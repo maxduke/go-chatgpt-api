@@ -75,6 +75,7 @@ var (
 	ConnPool = map[string][]*ConnInfo{}
 	ClientProfile profiles.ClientProfile
 	UserAgent    string
+	StartTime = time.Now()
 )
 
 type LoginInfo struct {
