@@ -12,7 +12,7 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/joho/godotenv v1.5.1
 	github.com/linweiyuan/go-logger v0.0.0-20230709142852-da1f090a7d4c
-	github.com/xqdoo00o/OpenAIAuth v0.0.0-20240518064833-c9bef8c55476
+	github.com/xqdoo00o/OpenAIAuth v0.0.0-20240520071626-7f9e463abed0
 	github.com/xqdoo00o/funcaptcha v0.0.0-20240507071758-6c32cfc34bdc
 	golang.org/x/crypto v0.23.0
 	golang.org/x/net v0.25.0
@@ -21,7 +21,7 @@ require (
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
-	github.com/bytedance/sonic v1.11.6 // indirect
+	github.com/bytedance/sonic v1.11.7 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
@@ -31,7 +31,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
-	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect

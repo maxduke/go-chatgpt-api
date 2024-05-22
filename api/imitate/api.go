@@ -256,7 +256,7 @@ func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationR
 		req.Header.Set("Openai-Sentinel-Proof-Token", proofToken)
 	}
 	req.Header.Set("Origin", api.ChatGPTApiUrlPrefix)
-	req.Header.Set("Referer", api.ChatGPTApiUrlPrefix)
+	req.Header.Set("Referer", api.ChatGPTApiUrlPrefix+"/")
 	resp, err := api.Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, api.ReturnMessage(err.Error()))
