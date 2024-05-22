@@ -518,7 +518,7 @@ func InitWSConn(token string, deviceId string, uuid string) error {
 
 func CheckRequire(access_token string, deviceId string) *ChatRequire {
 	if cachedRequireProof == "" {
-		cachedRequireProof = "gAAAAAC" + generateAnswer(strconv.FormatFloat(rand.Float64(), 'f', -1, 64), "0")
+		cachedRequireProof = "gAAAAAC" + generateAnswer(strconv.FormatFloat(rand.Float64(), 'f', -1, 64), "0fffff")
 	}
 	body := bytes.NewBuffer([]byte(`{"p":"` + cachedRequireProof + `"}`))
 	var apiUrl string
