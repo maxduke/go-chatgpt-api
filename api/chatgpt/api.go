@@ -297,9 +297,15 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 
 	if isMaxTokens && request.AutoContinue {
 		continueConversationRequest := CreateConversationRequest{
+			ConversationMode:           request.ConversationMode,
+			ForceNulligen:              request.ForceNulligen,
+			ForceParagen:               request.ForceParagen,
+			ForceParagenModelSlug:      request.ForceParagenModelSlug,
+			ForceRateLimit:             request.ForceRateLimit,
 			ForceUseSse:                request.ForceUseSse,
 			HistoryAndTrainingDisabled: request.HistoryAndTrainingDisabled,
 			Model:                      request.Model,
+			ResetRateLimits:            request.ResetRateLimits,
 			TimezoneOffsetMin:          request.TimezoneOffsetMin,
 
 			Action:          actionContinue,

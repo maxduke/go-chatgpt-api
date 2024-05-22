@@ -6,16 +6,27 @@ import (
 
 type CreateConversationRequest struct {
 	Action                     string    `json:"action"`
+	ConversationID             string    `json:"conversation_id,omitempty"`
+	ConversationMode           ConvMode  `json:"conversation_mode"`
+	ForceNulligen              bool      `json:"force_nulligen"`
+	ForceParagen               bool      `json:"force_paragen"`
+	ForceParagenModelSlug      string    `json:"force_paragen_model_slug"`
+	ForceRateLimit             bool      `json:"force_rate_limit"`
+	ForceUseSse                bool      `json:"force_use_sse"`
+	HistoryAndTrainingDisabled bool      `json:"history_and_training_disabled"`
 	Messages                   []Message `json:"messages,omitempty"`
 	Model                      string    `json:"model"`
 	ParentMessageID            string    `json:"parent_message_id,omitempty"`
-	ConversationID             string    `json:"conversation_id,omitempty"`
-	TimezoneOffsetMin          int       `json:"timezone_offset_min"`
-	ForceUseSse                bool      `json:"force_use_sse"`
-	HistoryAndTrainingDisabled bool      `json:"history_and_training_disabled"`
-	AutoContinue               bool      `json:"auto_continue"`
+	ResetRateLimits            bool      `json:"reset_rate_limits"`
 	Suggestions                []string  `json:"suggestions"`
+	TimezoneOffsetMin          int       `json:"timezone_offset_min"`
 	WebsocketRequestId         string    `json:"websocket_request_id"`
+	AutoContinue               bool      `json:"auto_continue"`
+}
+
+type ConvMode struct {
+	Kind    string `json:"kind"`
+	GizmoId string `json:"gizmo_id,omitempty"`
 }
 
 func (c *CreateConversationRequest) AddMessage(role string, content string) {
