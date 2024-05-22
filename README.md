@@ -3,9 +3,10 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api:latest
 
-## 20240521
+## 20240522
 - 调整生成刷新 deviceID 逻辑
 - 增加log: POW difficulty
+- 更新POW算法 https://github.com/xqdoo00o/ChatGPT-to-API/commit/e69e3d8ab3de295eec7a73551fffdb3b9ce83b1b
 
 ## 20240520
 - TEST: 尝试强制使用SSE，从而避免WSS的各种问题 （效果未知）
