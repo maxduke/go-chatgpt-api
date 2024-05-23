@@ -43,8 +43,8 @@ var (
 	cachedRequireProof = ""
 
 	powMaxCalcTimes = 500000
-	navigatorKeys = []string{"hardwareConcurrency−16", "login−[object NavigatorLogin]","presentation−[object Presentation]"}
-	documentKeys = []string{"_reactListeningpa877jnmig", "location"}
+	navigatorKeys = []string{"hardwareConcurrency−16", "login−[object NavigatorLogin]","presentation−[object Presentation]","managed−[object NavigatorManagedData]"}
+	documentKeys = []string{"location"}
 	windowKeys = []string{
 		"window",
 		"self",
@@ -311,10 +311,10 @@ func init() {
 	if envHardware != "" {
 		intValue, err := strconv.Atoi(envHardware)
 		if err != nil {
-			logger.Error(fmt.Sprintf("Error converting %s to integer: %v\n", envHardware, err))
+			logger.Error(fmt.Sprintf("Error converting %s to integer: %v", envHardware, err))
 		} else {
 			cachedHardware = intValue
-			logger.Info(fmt.Sprintf("cachedHardware is set to : %d\n", cachedHardware))
+			logger.Info(fmt.Sprintf("cachedHardware is set to : %d", cachedHardware))
 		}
 	}
 	powMaxCalcTimes := 500000
@@ -322,10 +322,10 @@ func init() {
 	if envPowMaxCalcTimes != "" {
 		intValue, err := strconv.Atoi(envPowMaxCalcTimes)
 		if err != nil {
-			logger.Error(fmt.Sprintf("Error converting %s to integer: %v\n", envPowMaxCalcTimes, err))
+			logger.Error(fmt.Sprintf("Error converting %s to integer: %v", envPowMaxCalcTimes, err))
 		} else {
 			powMaxCalcTimes = intValue
-			logger.Info(fmt.Sprintf("PowMaxCalcTimes is set to : %d\n", powMaxCalcTimes))
+			logger.Info(fmt.Sprintf("PowMaxCalcTimes is set to : %d", powMaxCalcTimes))
 		}
 	}
 }
@@ -891,7 +891,7 @@ func CalcProofToken(require *ChatRequire) string {
 	proof := generateAnswer(require.Proof.Seed, require.Proof.Difficulty)
     elapsed := time.Since(start)
     // POW logging
-	logger.Info(fmt.Sprintf("POW Difficulty: %s , took %v ms\n", require.Proof.Difficulty, elapsed.Milliseconds()))
+	logger.Info(fmt.Sprintf("POW Difficulty: %s , took %v ms", require.Proof.Difficulty, elapsed.Milliseconds()))
 	return "gAAAAAB" + proof
 }
 
