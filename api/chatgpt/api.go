@@ -887,9 +887,11 @@ func getConfig() []interface{} {
 }
 
 func CalcProofToken(require *ChatRequire) string {
-	// temp: log difficulity
-	fmt.Println("POW Difficulty: "+require.Proof.Difficulty)
+    start := time.Now()
 	proof := generateAnswer(require.Proof.Seed, require.Proof.Difficulty)
+    elapsed := time.Since(start)
+    // POW logging
+	logger.Info(fmt.Sprintf("POW Difficulty: %s , took %v ms\n", require.Proof.Difficulty, elapsed.Milliseconds()))
 	return "gAAAAAB" + proof
 }
 
