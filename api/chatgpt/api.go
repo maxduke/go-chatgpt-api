@@ -42,8 +42,8 @@ var (
 	cachedDpl           = ""
 	cachedRequireProof = ""
 
-	powRetryTimes = 0
-	powMaxDifficulty = "000032"
+	PowRetryTimes = 0
+	PowMaxDifficulty = "000032"
 	powMaxCalcTimes = 500000
 	navigatorKeys = []string{"hardwareConcurrency−16", "login−[object NavigatorLogin]","presentation−[object Presentation]","managed−[object NavigatorManagedData]"}
 	documentKeys = []string{"location"}
@@ -325,14 +325,14 @@ func init() {
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error converting %s to integer: %v", envPowRetryTimes, err))
 		} else {
-			powRetryTimes = intValue
-			logger.Info(fmt.Sprintf("PowRetryTimes is set to : %d", powRetryTimes))
+			PowRetryTimes = intValue
+			logger.Info(fmt.Sprintf("PowRetryTimes is set to : %d", PowRetryTimes))
 		}
 	}
 	envpowMaxDifficulty := os.Getenv("POW_MAX_DIFFICULTY")
 	if envpowMaxDifficulty != "" {
-		powMaxDifficulty = envpowMaxDifficulty
-		logger.Info(fmt.Sprintf("PowMaxDifficulty is set to : %s", powMaxDifficulty))
+		PowMaxDifficulty = envpowMaxDifficulty
+		logger.Info(fmt.Sprintf("PowMaxDifficulty is set to : %s", PowMaxDifficulty))
 	}
 	envPowMaxCalcTimes := os.Getenv("POW_MAX_CALC_TIMES")
 	if envPowMaxCalcTimes != "" {
@@ -373,9 +373,9 @@ func CreateConversation(c *gin.Context) {
 		authHeader = strings.Replace(authHeader, "Bearer ", "", 1)
 	}
 	chat_require := CheckRequire(authHeader, api.OAIDID)
-	for i := 0; i < powRetryTimes; i++ {		
-		if chat_require.Proof.Required && chat_require.Proof.Difficulty <= powMaxDifficulty {
-			logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying...", chat_require.Proof.Difficulty))
+	for i := 0; i < PowRetryTimes; i++ {		
+		if chat_require.Proof.Required && chat_require.Proof.Difficulty <= PowMaxDifficulty {
+			logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, PowRetryTimes))
 			chat_require = CheckRequire(authHeader, api.OAIDID)
 		} else {
 			break
@@ -616,6 +616,14 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 			WebsocketRequestId: uuid.NewString(),
 		}
 		chat_require := CheckRequire(accessToken, deviceId)
+		for i := 0; i < PowRetryTimes; i++ {		
+			if chat_require.Proof.Required && chat_require.Proof.Difficulty <= PowMaxDifficulty {
+				logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, PowRetryTimes))
+				chat_require = CheckRequire(accessToken, api.OAIDID)
+			} else {
+				break
+			}
+		}
  		if chat_require.Proof.Required {
  			proofToken = CalcProofToken(chat_require)
  		}

@@ -84,6 +84,14 @@ func CreateChatCompletions(c *gin.Context) {
 	go func() {
 		defer wg.Done()
 		chat_require = chatgpt.CheckRequire(token, api.OAIDID)
+		for i := 0; i < chatgpt.PowRetryTimes; i++ {		
+			if chat_require.Proof.Required && chat_require.Proof.Difficulty <= chatgpt.PowMaxDifficulty {
+				logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, chatgpt.PowRetryTimes))
+				chat_require = chatgpt.CheckRequire(token, api.OAIDID)
+			} else {
+				break
+			}
+		}
 	}()
 	wg.Wait()
 	if err != nil {
@@ -145,6 +153,14 @@ func CreateChatCompletions(c *gin.Context) {
 		translated_request.ConversationID = continue_info.ConversationID
 		translated_request.ParentMessageID = continue_info.ParentID
 		chat_require = chatgpt.CheckRequire(token, api.OAIDID)
+		for i := 0; i < chatgpt.PowRetryTimes; i++ {		
+			if chat_require.Proof.Required && chat_require.Proof.Difficulty <= chatgpt.PowMaxDifficulty {
+				logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, chatgpt.PowRetryTimes))
+				chat_require = chatgpt.CheckRequire(token, api.OAIDID)
+			} else {
+				break
+			}
+		}
  		if chat_require.Proof.Required {
  			proofToken = chatgpt.CalcProofToken(chat_require)
  		}
