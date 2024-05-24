@@ -375,7 +375,7 @@ func CreateConversation(c *gin.Context) {
 	chat_require := CheckRequire(authHeader, api.OAIDID)
 	for i := 0; i < powRetryTimes; i++ {		
 		if chat_require.Proof.Required && chat_require.Proof.Difficulty <= powMaxDifficulty {
-			logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying..."))
+			logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying...", chat_require.Proof.Difficulty))
 			chat_require = CheckRequire(authHeader, api.OAIDID)
 		} else {
 			break
