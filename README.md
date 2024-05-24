@@ -3,6 +3,11 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api:latest
 
+## 20240524
+- 增加环境变量
+  - POW_RETRY_TIMES - POW难度太高时，尝试重新获取POW种子的次数，默认0
+  - POW_MAX_DIFFICULTY - POW最高难度设定，高于次难度将重试获取POW种子，默认"000032"
+
 ## 20240523
 - 调整POW算法
 - 增加环境变量
