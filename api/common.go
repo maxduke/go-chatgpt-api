@@ -43,7 +43,7 @@ const (
 	EmailInvalidErrorMessage           = "email is not valid"
 	EmailOrPasswordInvalidErrorMessage = "email or password is not correct"
 	GetAccessTokenErrorMessage         = "failed to get access token"
-	defaultTimeoutSeconds              = 600 // 10 minutes
+	defaultTimeoutSeconds              = 30
 
 	EmailKey                       = "email"
 	AccountDeactivatedErrorMessage = "account %s is deactivated"
