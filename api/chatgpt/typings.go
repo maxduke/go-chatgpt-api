@@ -21,7 +21,6 @@ type CreateConversationRequest struct {
 	Suggestions                []string  `json:"suggestions"`
 	TimezoneOffsetMin          int       `json:"timezone_offset_min"`
 	WebsocketRequestId         string    `json:"websocket_request_id"`
-	AutoContinue               bool      `json:"auto_continue"`
 }
 
 type ConvMode struct {

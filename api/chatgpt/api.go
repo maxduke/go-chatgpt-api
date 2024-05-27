@@ -34,6 +34,7 @@ import (
 )
 
 var (
+	autoContinue bool
 	answers             = map[string]string{}
 	timeLocation, _     = time.LoadLocation("Asia/Shanghai")
 	timeLayout          = "Mon Jan 2 2006 15:04:05"
@@ -302,6 +303,7 @@ var (
 )
 
 func init() {
+	autoContinue = os.Getenv("AUTO_CONTINUE") == "true"
 	cores := []int{8, 12, 16, 24}
 	screens := []int{3000, 4000, 6000}
 	rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -576,7 +578,7 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 			}
 
 			responseJson := line[6:]
-			if strings.HasPrefix(responseJson, "[DONE]") && isMaxTokens && request.AutoContinue {
+			if strings.HasPrefix(responseJson, "[DONE]") && isMaxTokens && autoContinue {
 				continue
 			}
 
@@ -597,7 +599,8 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 		}
 	}
 
-	if isMaxTokens && request.AutoContinue {
+	if isMaxTokens && autoContinue {
+		logger.Info("Continuing conversation")
 		continueConversationRequest := CreateConversationRequest{
 			ConversationMode:           request.ConversationMode,
 			ForceNulligen:              request.ForceNulligen,
