@@ -147,7 +147,7 @@ func CreateChatCompletions(c *gin.Context) {
 		if continue_info == nil {
 			break
 		}
-		println("Continuing conversation")
+		logger.Info("Continuing conversation")
 		translated_request.Messages = nil
 		translated_request.Action = "continue"
 		translated_request.ConversationID = continue_info.ConversationID

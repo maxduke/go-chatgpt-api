@@ -600,6 +600,7 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 	}
 
 	if isMaxTokens && autoContinue {
+		logger.Info("Continuing conversation")
 		continueConversationRequest := CreateConversationRequest{
 			ConversationMode:           request.ConversationMode,
 			ForceNulligen:              request.ForceNulligen,
