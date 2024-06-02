@@ -38,7 +38,8 @@ var (
 	answers             = map[string]string{}
 	timeLocation, _     = time.LoadLocation("Asia/Shanghai")
 	timeLayout          = "Mon Jan 2 2006 15:04:05"
-	cachedHardware = 0
+	cachedHardware      = 0
+	cachedSid           = uuid.NewString()
 	cachedScripts       = []string{}
 	cachedDpl           = ""
 	cachedRequireProof = ""
@@ -918,7 +919,7 @@ func getConfig() []interface{} {
 	documentKey := documentKeys[rand.Intn(len(documentKeys))]
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 	windowKey := windowKeys[rand.Intn(len(windowKeys))]
-	return []interface{}{cachedHardware, getParseTime(), int64(4294705152), 0, api.UserAgent, script, cachedDpl, api.Language, api.Language+","+api.Language[:2], 0, navigatorKey, documentKey, windowKey, timeNum}
+	return []interface{}{cachedHardware, getParseTime(), int64(4294705152), 0, api.UserAgent, script, cachedDpl, api.Language, api.Language+","+api.Language[:2], 0, navigatorKey, documentKey, windowKey, timeNum, cachedSid}
 }
 
 func CalcProofToken(require *ChatRequire) string {

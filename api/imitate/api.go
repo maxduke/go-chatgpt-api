@@ -470,7 +470,7 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 					continue
 				}
 			}
-			if original_response.Message.EndTurn != nil {
+			if original_response.Message.EndTurn != nil && !original_response.Message.EndTurn.(bool) {
 				if waitSource {
 					waitSource = false
 				}
@@ -537,15 +537,14 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 			if response_string == "" {
 				response_string = ConvertToString(&original_response, &previous_text, isRole)
 			}
-			if response_string == "" {
-				continue
+			if isRole && response_string != "" {
+				isRole = false
 			}
 			if response_string == "【" {
 				waitSource = true
 				continue
 			}
-			isRole = false
-			if stream {
+			if stream && response_string != "" {
 				_, err = c.Writer.WriteString(response_string)
 				if err != nil {
 					return "", nil
