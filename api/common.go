@@ -170,7 +170,6 @@ func Proxy(c *gin.Context) {
 	req.Header.Set("Oai-Language", Language)
 	req.Header.Set("Oai-Device-Id", OAIDID)
 	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID+";")
-	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-dm-tgt-c-240329=2024-04-02;")
 	resp, err := Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ReturnMessage(err.Error()))
@@ -347,7 +346,6 @@ func GetPUID(accessToken string) string {
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Add("User-Agent", UserAgent)
 	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID+";")
-	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-dm-tgt-c-240329=2024-04-02;")
 
 	resp, err := NewHttpClient().Do(req)
 	if err != nil {

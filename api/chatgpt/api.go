@@ -660,7 +660,6 @@ func NewRequest(method string, url string, body io.Reader, token string, deviceI
 		request.Header.Set("Oai-Device-Id", deviceId)
 	}
 	request.Header.Set("Oai-Language", api.Language)
-	request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-dm-tgt-c-240329=2024-04-02;")
 	if token != "" {
 		request.Header.Set("Authorization", "Bearer "+token)
 	}
