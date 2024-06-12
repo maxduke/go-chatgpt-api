@@ -376,10 +376,18 @@ func CreateConversation(c *gin.Context) {
 		authHeader = strings.Replace(authHeader, "Bearer ", "", 1)
 	}
 	chat_require := CheckRequire(authHeader, api.OAIDID)
+	if chat_require == nil {
+		logger.Error("unable to check chat requirement")
+		return
+	}
 	for i := 0; i < PowRetryTimes; i++ {		
 		if chat_require.Proof.Required && chat_require.Proof.Difficulty <= PowMaxDifficulty {
 			logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, PowRetryTimes))
 			chat_require = CheckRequire(authHeader, api.OAIDID)
+			if chat_require == nil {
+				logger.Error("unable to check chat requirement")
+				return
+			}
 		} else {
 			break
 		}
@@ -620,10 +628,18 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 			WebsocketRequestId: uuid.NewString(),
 		}
 		chat_require := CheckRequire(accessToken, deviceId)
+		if chat_require == nil {
+			logger.Error("unable to check chat requirement")
+			return
+		}
 		for i := 0; i < PowRetryTimes; i++ {		
 			if chat_require.Proof.Required && chat_require.Proof.Difficulty <= PowMaxDifficulty {
 				logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, PowRetryTimes))
 				chat_require = CheckRequire(accessToken, api.OAIDID)
+				if chat_require == nil {
+					logger.Error("unable to check chat requirement")
+					return
+				}
 			} else {
 				break
 			}

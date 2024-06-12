@@ -3,6 +3,10 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api:latest
 
+## 20240612
+- remove unused cookie
+- add error log for checkRequire
+
 ## 20240527
 - 尝试修复autoContiune, 增加环境变量
   - AUTO_CONTINUE - 默认 false
