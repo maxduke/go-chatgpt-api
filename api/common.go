@@ -34,7 +34,7 @@ const (
 	XAuthorizationHeader               = "X-Authorization"
 	ArkoseTokenHeader                  = "Openai-Sentinel-Arkose-Token"
 	ContentType                        = "application/x-www-form-urlencoded"
-	DefaultUserAgent                   = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+	DefaultUserAgent                   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0"
 	Auth0Url                           = "https://auth0.openai.com"
 	LoginUsernameUrl                   = Auth0Url + "/u/login/identifier?state="
 	LoginPasswordUrl                   = Auth0Url + "/u/login/password?state="
