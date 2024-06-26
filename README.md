@@ -3,6 +3,12 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api:latest
 
+## 20240626
+- Adjust default UA
+- Test TurnstileToken generation (https://github.com/xqdoo00o/ChatGPT-to-API/commit/2cc5968fc70073c095d157fe8a9b5a2d66917eb6)
+- Add new env variable
+  - PROCESS_TURNSTILE (set to "true" to enable turnstile token generation)
+
 ## 20240612
 - remove unused cookie
 - add error log for checkRequire
