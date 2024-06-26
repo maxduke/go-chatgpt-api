@@ -76,6 +76,7 @@ func CreateChatCompletions(c *gin.Context) {
 
 	uid := uuid.NewString()
 	var chat_require *chatgpt.ChatRequire
+	var p string
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
@@ -84,7 +85,7 @@ func CreateChatCompletions(c *gin.Context) {
 	}()
 	go func() {
 		defer wg.Done()
-		chat_require = chatgpt.CheckRequire(token, api.OAIDID)
+		chat_require, p = chatgpt.CheckRequire(token, api.OAIDID)
 		if chat_require == nil {
 			c.JSON(500, gin.H{"error": "unable to check chat requirement"})
 			return
@@ -92,7 +93,7 @@ func CreateChatCompletions(c *gin.Context) {
 		for i := 0; i < chatgpt.PowRetryTimes; i++ {		
 			if chat_require.Proof.Required && chat_require.Proof.Difficulty <= chatgpt.PowMaxDifficulty {
 				logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, chatgpt.PowRetryTimes))
-				chat_require = chatgpt.CheckRequire(token, api.OAIDID)
+				chat_require, _ = chatgpt.CheckRequire(token, api.OAIDID)
 				if chat_require == nil {
 					c.JSON(500, gin.H{"error": "unable to check chat requirement"})
 					return
@@ -127,10 +128,15 @@ func CreateChatCompletions(c *gin.Context) {
 		}
 	}
 
+	var turnstileToken string
+	if chat_require.Turnstile.Required {
+		turnstileToken = chatgpt.ProcessTurnstile(chat_require.Turnstile.DX, p)
+	}
+
 	// Convert the chat request to a ChatGPT request
 	translated_request := convertAPIRequest(original_request)
 
-	response, done := sendConversationRequest(c, translated_request, token, api.OAIDID, arkoseToken, chat_require.Token, proofToken)
+	response, done := sendConversationRequest(c, translated_request, token, api.OAIDID, arkoseToken, chat_require.Token, proofToken, turnstileToken)
 	if done {
 		return
 	}
@@ -161,7 +167,7 @@ func CreateChatCompletions(c *gin.Context) {
 		translated_request.Action = "continue"
 		translated_request.ConversationID = continue_info.ConversationID
 		translated_request.ParentMessageID = continue_info.ParentID
-		chat_require = chatgpt.CheckRequire(token, api.OAIDID)
+		chat_require, _ = chatgpt.CheckRequire(token, api.OAIDID)
 		if chat_require == nil {
 			c.JSON(500, gin.H{"error": "unable to check chat requirement"})
 			return
@@ -169,7 +175,7 @@ func CreateChatCompletions(c *gin.Context) {
 		for i := 0; i < chatgpt.PowRetryTimes; i++ {		
 			if chat_require.Proof.Required && chat_require.Proof.Difficulty <= chatgpt.PowMaxDifficulty {
 				logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, chatgpt.PowRetryTimes))
-				chat_require = chatgpt.CheckRequire(token, api.OAIDID)
+				chat_require, _ = chatgpt.CheckRequire(token, api.OAIDID)
 				if chat_require == nil {
 					c.JSON(500, gin.H{"error": "unable to check chat requirement"})
 					return
@@ -189,7 +195,10 @@ func CreateChatCompletions(c *gin.Context) {
 				return
 			}
 		}
-		response, done = sendConversationRequest(c, translated_request, token, api.OAIDID, arkoseToken, chat_require.Token, proofToken)
+		if chat_require.Turnstile.Required {
+			turnstileToken = chatgpt.ProcessTurnstile(chat_require.Turnstile.DX, p)
+		}
+		response, done = sendConversationRequest(c, translated_request, token, api.OAIDID, arkoseToken, chat_require.Token, proofToken, turnstileToken)
 
 		if done {
 			return
@@ -270,7 +279,7 @@ func NewChatGPTRequest() chatgpt.CreateConversationRequest {
 	}
 }
 
-func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationRequest, accessToken string, deviceId string, arkoseToken string, chat_token string, proofToken string) (*http.Response, bool) {
+func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationRequest, accessToken string, deviceId string, arkoseToken string, chat_token string, proofToken string, turnstileToken string) (*http.Response, bool) {
 	apiUrl := api.ChatGPTApiUrlPrefix+"/backend-api/conversation"
 	jsonBytes, _ := json.Marshal(request)
 	req, err := chatgpt.NewRequest(http.MethodPost, apiUrl, bytes.NewReader(jsonBytes), accessToken, deviceId)
@@ -284,6 +293,9 @@ func sendConversationRequest(c *gin.Context, request chatgpt.CreateConversationR
 	}
 	if proofToken != "" {
 		req.Header.Set("Openai-Sentinel-Proof-Token", proofToken)
+	}
+	if turnstileToken != "" {
+		req.Header.Set("Openai-Sentinel-Turnstile-Token", turnstileToken)
 	}
 	req.Header.Set("Origin", api.ChatGPTApiUrlPrefix)
 	req.Header.Set("Referer", api.ChatGPTApiUrlPrefix+"/")

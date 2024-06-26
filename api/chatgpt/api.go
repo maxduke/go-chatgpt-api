@@ -375,7 +375,7 @@ func CreateConversation(c *gin.Context) {
 	if strings.HasPrefix(authHeader, "Bearer") {
 		authHeader = strings.Replace(authHeader, "Bearer ", "", 1)
 	}
-	chat_require := CheckRequire(authHeader, api.OAIDID)
+	chat_require, p := CheckRequire(authHeader, api.OAIDID)
 	if chat_require == nil {
 		logger.Error("unable to check chat requirement")
 		return
@@ -383,7 +383,7 @@ func CreateConversation(c *gin.Context) {
 	for i := 0; i < PowRetryTimes; i++ {		
 		if chat_require.Proof.Required && chat_require.Proof.Difficulty <= PowMaxDifficulty {
 			logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, PowRetryTimes))
-			chat_require = CheckRequire(authHeader, api.OAIDID)
+			chat_require, _ = CheckRequire(authHeader, api.OAIDID)
 			if chat_require == nil {
 				logger.Error("unable to check chat requirement")
 				return
@@ -409,10 +409,15 @@ func CreateConversation(c *gin.Context) {
 		proofToken = CalcProofToken(chat_require)
 	}
 
+	var turnstileToken string
+	if chat_require.Turnstile.Required {
+		turnstileToken = ProcessTurnstile(chat_require.Turnstile.DX, p)
+	}
+
 	// TEST: force to use SSE
 	request.ForceUseSse = true
 
-	resp, done := sendConversationRequest(c, request, authHeader, api.OAIDID, arkoseToken, chat_require.Token, proofToken)
+	resp, done := sendConversationRequest(c, request, authHeader, api.OAIDID, arkoseToken, chat_require.Token, proofToken, turnstileToken)
 	if done {
 		return
 	}
@@ -420,7 +425,7 @@ func CreateConversation(c *gin.Context) {
 	handleConversationResponse(c, resp, request, authHeader, api.OAIDID)
 }
 
-func sendConversationRequest(c *gin.Context, request CreateConversationRequest, accessToken string, deviceId string, arkoseToken string,  chat_token string, proofToken string) (*http.Response, bool) {
+func sendConversationRequest(c *gin.Context, request CreateConversationRequest, accessToken string, deviceId string, arkoseToken string,  chat_token string, proofToken string, turnstileToken string) (*http.Response, bool) {
 	apiUrl := api.ChatGPTApiUrlPrefix+"/backend-api/conversation"
 	jsonBytes, _ := json.Marshal(request)
 	req, err := NewRequest(http.MethodPost, apiUrl, bytes.NewReader(jsonBytes), accessToken, deviceId)
@@ -434,6 +439,9 @@ func sendConversationRequest(c *gin.Context, request CreateConversationRequest, 
 	}
 	if proofToken != "" {
 		req.Header.Set("Openai-Sentinel-Proof-Token", proofToken)
+	}
+	if turnstileToken != "" {
+		req.Header.Set("Openai-Sentinel-Turnstile-Token", turnstileToken)
 	}
 	req.Header.Set("Origin", api.ChatGPTApiUrlPrefix)
 	if request.ConversationID != "" {
@@ -480,6 +488,7 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 
 	var arkoseToken string
 	var proofToken string
+	var turnstileToken string
 
 	defer resp.Body.Close()
 	reader := bufio.NewReader(resp.Body)
@@ -627,7 +636,7 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 			ConversationID:  continueConversationID,
 			WebsocketRequestId: uuid.NewString(),
 		}
-		chat_require := CheckRequire(accessToken, deviceId)
+		chat_require, p := CheckRequire(accessToken, deviceId)
 		if chat_require == nil {
 			logger.Error("unable to check chat requirement")
 			return
@@ -635,7 +644,7 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 		for i := 0; i < PowRetryTimes; i++ {		
 			if chat_require.Proof.Required && chat_require.Proof.Difficulty <= PowMaxDifficulty {
 				logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, PowRetryTimes))
-				chat_require = CheckRequire(accessToken, api.OAIDID)
+				chat_require, _ = CheckRequire(accessToken, api.OAIDID)
 				if chat_require == nil {
 					logger.Error("unable to check chat requirement")
 					return
@@ -655,7 +664,10 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 				return
 			}
 		}
-		resp, done := sendConversationRequest(c, continueConversationRequest, accessToken, deviceId, arkoseToken, chat_require.Token, proofToken)
+		if chat_require.Turnstile.Required {
+			turnstileToken = ProcessTurnstile(chat_require.Turnstile.DX, p)
+		}
+		resp, done := sendConversationRequest(c, continueConversationRequest, accessToken, deviceId, arkoseToken, chat_require.Token, proofToken, turnstileToken)
 		if done {
 			return
 		}
@@ -851,7 +863,7 @@ func InitWSConn(token string, deviceId string, uuid string) error {
 	}
 }
 
-func CheckRequire(access_token string, deviceId string) *ChatRequire {
+func CheckRequire(access_token string, deviceId string) (*ChatRequire, string) {
 	if cachedRequireProof == "" {
 		cachedRequireProof = "gAAAAAC" + generateAnswer(strconv.FormatFloat(rand.Float64(), 'f', -1, 64), "0")
 	}
@@ -860,22 +872,22 @@ func CheckRequire(access_token string, deviceId string) *ChatRequire {
 	apiUrl = api.ChatGPTApiUrlPrefix+"/backend-api/sentinel/chat-requirements"
 	request, err := NewRequest(http.MethodPost, apiUrl, body, access_token, deviceId)
 	if err != nil {
-		return nil
+		return nil, ""
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Origin", api.ChatGPTApiUrlPrefix)
 	request.Header.Set("Referer", api.ChatGPTApiUrlPrefix+"/")
 	response, err := api.Client.Do(request)
 	if err != nil {
-		return nil
+		return nil, ""
 	}
 	defer response.Body.Close()
 	var require ChatRequire
 	err = json.NewDecoder(response.Body).Decode(&require)
 	if err != nil {
-		return nil
+		return nil, ""
 	}
-	return &require
+	return &require, cachedRequireProof
 }
 
 type ProofWork struct {
