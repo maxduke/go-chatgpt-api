@@ -243,14 +243,11 @@ func generateId() string {
 func convertAPIRequest(api_request APIRequest) (chatgpt.CreateConversationRequest) {
 	chatgpt_request := NewChatGPTRequest()
 
-	if strings.HasPrefix(api_request.Model, "gpt-3.5") {
-		chatgpt_request.Model = "text-davinci-002-render-sha"
-	} else if strings.HasPrefix(api_request.Model, "gpt-4") {
-		chatgpt_request.Model = "gpt-4"
-		if strings.HasPrefix(api_request.Model, "gpt-4o") {
-			chatgpt_request.Model = "gpt-4o"
-		}
-	}
+	if api_request.Model == "gpt-4" || api_request.Model == "gpt-4o" {
+		chatgpt_request.Model = api_request.Model
+	} else {
+		chatgpt_request.Model = "gpt-4o-mini"
+	}	
 	matches := gptsRegexp.FindStringSubmatch(api_request.Model)
 	if len(matches) == 2 {
 		chatgpt_request.ConversationMode.Kind = "gizmo_interaction"

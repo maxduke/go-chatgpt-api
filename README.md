@@ -3,6 +3,11 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api:latest
 
+## 20240719
+- [imitate]Add support for gpt-4o-mini
+- [imitate]Drop support for gpt-3.5(text-davinci-002-render-sha)
+- [imitate]*Plan to remove this endpoint in the future, recommend to use https://github.com/xqdoo00o/ChatGPT-to-API*
+
 ## 20240626
 - Adjust default UA
 - Test TurnstileToken generation (https://github.com/xqdoo00o/ChatGPT-to-API/commit/2cc5968fc70073c095d157fe8a9b5a2d66917eb6)
