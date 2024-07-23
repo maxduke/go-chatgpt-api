@@ -21,6 +21,8 @@ func Files(c *gin.Context) {
 		url += "?" + queryParams
 	}
 
+	logger.Info(fmt.Sprintf("url: %s", url))
+
 	// if not set, will return 404
 	c.Status(http.StatusOK)
 
@@ -48,22 +50,30 @@ func Files(c *gin.Context) {
 	var downloadURL DownloadURL
 	err = json.NewDecoder(resp.Body).Decode(&downloadURL)
 	if err == nil {
+		logger.Info(fmt.Sprintf("downloadURL.Result: %s", downloadURL.Result))
 		if !strings.HasPrefix(downloadURL.Result, "http") {
 			redirectURL := api.ChatGPTApiUrlPrefix + downloadURL.Result
+			logger.Info(fmt.Sprintf("redirectURL: %s", redirectURL))
 			req, _ = NewRequest(http.MethodGet, redirectURL, nil, "", api.OAIDID)
 			req.Header.Set(api.AuthorizationHeader, api.GetAccessToken(c))
 			redirectResp, _ := api.Client.Do(req)
+			logger.Info(fmt.Sprintf("redirectResp.StatusCode: %s", redirectResp.StatusCode))
 			if redirectResp.StatusCode == http.StatusTemporaryRedirect { // 307 Temporary Redirect
 				location := redirectResp.Header.Get("Location")
+				logger.Info(fmt.Sprintf("location: %s", location))
 				if location != "" {
 					downloadURL.Result = location
 					modifiedJSON, err := json.Marshal(downloadURL)
 					if err == nil {
 						resp.Body = io.NopCloser(bytes.NewBuffer(modifiedJSON))
-					}					
+					} else {
+						fmt.Println("Error encoding JSON:", err)
+					}
 				}
 			}
 		}
+	} else {
+		fmt.Println("Error decoding JSON:", err)
 	}
 
 	io.Copy(c.Writer, resp.Body)
