@@ -1,16 +1,20 @@
 package chatgpt
 
 import (
+	"bytes"
+	"encoding/json"
 	http "github.com/bogdanfinn/fhttp"
+	"io"
+	"fmt"
 	"github.com/gin-gonic/gin"
-
 	"github.com/maxduke/go-chatgpt-api/api"
-	"github.com/maxduke/go-chatgpt-api/api/chatgpt"
+	"github.com/linweiyuan/go-logger/logger"
+	"strings"
 )
 
 func Files(c *gin.Context) {
 	url := c.Request.URL.Path
-	url = strings.ReplaceAll(url, ChatGPTApiPrefix, ChatGPTApiUrlPrefix)
+	url = strings.ReplaceAll(url, api.ChatGPTApiPrefix, api.ChatGPTApiUrlPrefix)
 
 	queryParams := c.Request.URL.Query().Encode()
 	if queryParams != "" {
@@ -21,18 +25,18 @@ func Files(c *gin.Context) {
 	c.Status(http.StatusOK)
 
 	var req *http.Request
-	req, _ = chatgpt.NewRequest(http.MethodGet, url, nil, "", OAIDID)
-	req.Header.Set(AuthorizationHeader, GetAccessToken(c))
-	resp, err := Client.Do(req)
+	req, _ = NewRequest(http.MethodGet, url, nil, "", api.OAIDID)
+	req.Header.Set(api.AuthorizationHeader, api.GetAccessToken(c))
+	resp, err := api.Client.Do(req)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, ReturnMessage(err.Error()))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, api.ReturnMessage(err.Error()))
 		return
 	}
 
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		if resp.StatusCode == http.StatusUnauthorized {
-			logger.Error(fmt.Sprintf(AccountDeactivatedErrorMessage, c.GetString(EmailKey)))
+			logger.Error(fmt.Sprintf(api.AccountDeactivatedErrorMessage, c.GetString(api.EmailKey)))
 		}
 
 		responseMap := make(map[string]interface{})
@@ -45,10 +49,10 @@ func Files(c *gin.Context) {
 	err = json.NewDecoder(resp.Body).Decode(&downloadURL)
 	if err == nil {
 		if !strings.HasPrefix(downloadURL.Result, "http") {
-			redirectURL = ChatGPTApiUrlPrefix + downloadURL.Result
-			req, _ = chatgpt.NewRequest(http.MethodGet, redirectURL, nil, "", OAIDID)
-			req.Header.Set(AuthorizationHeader, GetAccessToken(c))
-			redirectResp, err := Client.Do(req)
+			redirectURL := api.ChatGPTApiUrlPrefix + downloadURL.Result
+			req, _ = NewRequest(http.MethodGet, redirectURL, nil, "", api.OAIDID)
+			req.Header.Set(api.AuthorizationHeader, api.GetAccessToken(c))
+			redirectResp, _ := api.Client.Do(req)
 			if redirectResp.StatusCode == http.StatusTemporaryRedirect { // 307 Temporary Redirect
 				location := redirectResp.Header.Get("Location")
 				if location != "" {
