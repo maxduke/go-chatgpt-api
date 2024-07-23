@@ -158,3 +158,9 @@ type DalleContent struct {
 		} `json:"dalle"`
 	} `json:"metadata"`
 }
+
+type DownloadURL struct {
+	Code        string `json:"code"`
+	Message     string `json:"message"`
+	Result      string `json:"result"`
+}

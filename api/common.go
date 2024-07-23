@@ -15,6 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/maxduke/go-chatgpt-api/api/chatgpt"
 	"github.com/xqdoo00o/OpenAIAuth/auth"
 	"github.com/xqdoo00o/funcaptcha"
 
@@ -160,16 +161,12 @@ func Proxy(c *gin.Context) {
 
 	var req *http.Request
 	if method == http.MethodGet {
-		req, _ = http.NewRequest(http.MethodGet, url, nil)
+		req, _ = chatgpt.NewRequest(http.MethodGet, url, nil, "", OAIDID)
 	} else {
 		body, _ := io.ReadAll(c.Request.Body)
-		req, _ = http.NewRequest(method, url, bytes.NewReader(body))
+		req, _ = chatgpt.NewRequest(method, url, bytes.NewReader(body), "", OAIDID)
 	}
-	req.Header.Set("User-Agent", UserAgent)
 	req.Header.Set(AuthorizationHeader, GetAccessToken(c))
-	req.Header.Set("Oai-Language", Language)
-	req.Header.Set("Oai-Device-Id", OAIDID)
-	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID+";")
 	resp, err := Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ReturnMessage(err.Error()))
