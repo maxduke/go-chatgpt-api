@@ -166,7 +166,9 @@ func Proxy(c *gin.Context) {
 		req, _ = http.NewRequest(method, url, bytes.NewReader(body))
 	}
 	req.Header.Set("User-Agent", UserAgent)
-	req.Header.Set(AuthorizationHeader, GetAccessToken(c))
+	if GetAccessToken(c) != "" {
+		req.Header.Set(AuthorizationHeader, GetAccessToken(c))
+	}	
 	req.Header.Set("Oai-Language", Language)
 	req.Header.Set("Oai-Device-Id", OAIDID)
 	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID+";")
