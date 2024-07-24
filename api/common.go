@@ -170,6 +170,8 @@ func Proxy(c *gin.Context) {
 	req.Header.Set("Oai-Language", Language)
 	req.Header.Set("Oai-Device-Id", OAIDID)
 	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID+";")
+	logger.Info(fmt.Sprintf("url: %s", url))
+	logger.Info(fmt.Sprintf("Authorization: %s", GetAccessToken(c)))
 	resp, err := Client.Do(req)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, ReturnMessage(err.Error()))

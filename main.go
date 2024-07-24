@@ -52,7 +52,7 @@ func setupChatGPTAPIs(router *gin.Engine) {
 	{
 		chatgptGroup.POST("/login", chatgpt.Login)
 		chatgptGroup.POST("/backend-api/login", chatgpt.Login) // add support for other projects
-		chatgptGroup.GET("/backend-api/files/:id/download", chatgpt.Files) // add support for files
+		//chatgptGroup.GET("/backend-api/files/:id/download", chatgpt.Files) // add support for files
 
 		conversationGroup := chatgptGroup.Group("/backend-api/conversation")
 		{
