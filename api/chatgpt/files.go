@@ -57,9 +57,10 @@ func Files(c *gin.Context) {
 			logger.Info(fmt.Sprintf("redirectURL: %s", redirectURL))
 			req, _ = NewRequest(http.MethodGet, redirectURL, nil, "", api.OAIDID)
 			req.Header.Set(api.AuthorizationHeader, api.GetAccessToken(c))
+			api.Client.SetFollowRedirect(false)
 			redirectResp, _ := api.Client.Do(req)
 			defer redirectResp.Body.Close()
-			logger.Info(fmt.Sprintf("redirectResp.StatusCode: %s", redirectResp.StatusCode))
+			logger.Info(fmt.Sprintf("redirectResp.StatusCode: %v", redirectResp.StatusCode))
 			if redirectResp.StatusCode == http.StatusTemporaryRedirect { // 307 Temporary Redirect
 				location := redirectResp.Header.Get("Location")
 				logger.Info(fmt.Sprintf("location: %s", location))
