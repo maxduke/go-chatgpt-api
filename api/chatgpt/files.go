@@ -57,6 +57,7 @@ func Files(c *gin.Context) {
 			req, _ = NewRequest(http.MethodGet, redirectURL, nil, "", api.OAIDID)
 			req.Header.Set(api.AuthorizationHeader, api.GetAccessToken(c))
 			redirectResp, _ := api.Client.Do(req)
+			defer redirectResp.Body.Close()
 			logger.Info(fmt.Sprintf("redirectResp.StatusCode: %s", redirectResp.StatusCode))
 			if redirectResp.StatusCode == http.StatusTemporaryRedirect { // 307 Temporary Redirect
 				location := redirectResp.Header.Get("Location")
@@ -67,13 +68,13 @@ func Files(c *gin.Context) {
 					if err == nil {
 						resp.Body = io.NopCloser(bytes.NewBuffer(modifiedJSON))
 					} else {
-						fmt.Println("Error encoding JSON:", err)
+						logger.Error(fmt.Sprintf("Error encoding JSON: %v", err))
 					}
 				}
 			}
 		}
 	} else {
-		fmt.Println("Error decoding JSON:", err)
+		logger.Error(fmt.Sprintf("Error decoding JSON: %v", err))
 	}
 
 	io.Copy(c.Writer, resp.Body)
