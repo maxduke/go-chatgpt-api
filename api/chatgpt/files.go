@@ -34,25 +34,26 @@ func Files(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, api.ReturnMessage(err.Error()))
 		return
 	}
-
+	
 	defer resp.Body.Close()
+	bodyBytes, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		if resp.StatusCode == http.StatusUnauthorized {
 			logger.Error(fmt.Sprintf(api.AccountDeactivatedErrorMessage, c.GetString(api.EmailKey)))
 		}
 
 		responseMap := make(map[string]interface{})
-		json.NewDecoder(resp.Body).Decode(&responseMap)
+		json.NewDecoder(bytes.NewBuffer(bodyBytes)).Decode(&responseMap)
 		c.AbortWithStatusJSON(resp.StatusCode, responseMap)
 		return
 	}
 
-	var downloadURL DownloadURL
-	err = json.NewDecoder(resp.Body).Decode(&downloadURL)
+	var download Download
+	err = json.NewDecoder(bytes.NewBuffer(bodyBytes)).Decode(&download)
 	if err == nil {
-		logger.Info(fmt.Sprintf("downloadURL.Result: %s", downloadURL.Result))
-		if !strings.HasPrefix(downloadURL.Result, "http") {
-			redirectURL := api.ChatGPTApiUrlPrefix + downloadURL.Result
+		logger.Info(fmt.Sprintf("download.DownloadURL: %s", download.DownloadURL))
+		if !strings.HasPrefix(download.DownloadURL, "http") {
+			redirectURL := api.ChatGPTApiUrlPrefix + download.DownloadURL
 			logger.Info(fmt.Sprintf("redirectURL: %s", redirectURL))
 			req, _ = NewRequest(http.MethodGet, redirectURL, nil, "", api.OAIDID)
 			req.Header.Set(api.AuthorizationHeader, api.GetAccessToken(c))
@@ -63,10 +64,11 @@ func Files(c *gin.Context) {
 				location := redirectResp.Header.Get("Location")
 				logger.Info(fmt.Sprintf("location: %s", location))
 				if location != "" {
-					downloadURL.Result = location
-					modifiedJSON, err := json.Marshal(downloadURL)
+					download.DownloadURL = location
+					modifiedJSON, err := json.Marshal(download)
 					if err == nil {
-						resp.Body = io.NopCloser(bytes.NewBuffer(modifiedJSON))
+						c.Writer.Write(modifiedJSON)
+						return
 					} else {
 						logger.Error(fmt.Sprintf("Error encoding JSON: %v", err))
 					}
@@ -77,5 +79,5 @@ func Files(c *gin.Context) {
 		logger.Error(fmt.Sprintf("Error decoding JSON: %v", err))
 	}
 
-	io.Copy(c.Writer, resp.Body)
+	c.Writer.Write(bodyBytes) 
 }
