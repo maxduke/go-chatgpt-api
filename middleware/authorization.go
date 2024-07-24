@@ -53,6 +53,8 @@ func Authorization() gin.HandlerFunc {
 			} else if c.Request.URL.Path == "/favicon.ico" {
 				c.Abort()
 				return
+			} else if strings.HasPrefix(c.Request.URL.Path, "/chatgpt/api/content") {
+				return
 			} else {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, api.ReturnMessage(emptyAccessTokenErrorMessage))
 				return
