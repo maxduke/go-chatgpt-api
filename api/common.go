@@ -14,7 +14,6 @@ import (
 	"github.com/bogdanfinn/tls-client/profiles"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	"github.com/xqdoo00o/OpenAIAuth/auth"
 	"github.com/xqdoo00o/funcaptcha"
 
@@ -57,14 +56,6 @@ const (
 	ClientProfileMessage = "ClientProfile: %s is used"
 )
 
-type ConnInfo struct {
-	Conn   *websocket.Conn
-	Uuid   string
-	Expire time.Time
-	Ticker *time.Ticker
-	Lock   bool
-}
-
 var (
 	Client       tls_client.HttpClient
 	ArkoseClient tls_client.HttpClient
@@ -72,7 +63,6 @@ var (
 	OAIDID       string
 	ProxyUrl     string
 	IMITATE_accessToken string
-	ConnPool = map[string][]*ConnInfo{}
 	ClientProfile profiles.ClientProfile
 	UserAgent    string
 	StartTime = time.Now()

@@ -10,15 +10,12 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	http "github.com/bogdanfinn/fhttp"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 
 	"github.com/maxduke/go-chatgpt-api/api"
 	"github.com/maxduke/go-chatgpt-api/api/chatgpt"
@@ -77,36 +74,23 @@ func CreateChatCompletions(c *gin.Context) {
 	uid := uuid.NewString()
 	var chat_require *chatgpt.ChatRequire
 	var p string
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		err = chatgpt.InitWSConn(token, api.OAIDID, uid)
-	}()
-	go func() {
-		defer wg.Done()
-		chat_require, p = chatgpt.CheckRequire(token, api.OAIDID)
-		if chat_require == nil {
-			c.JSON(500, gin.H{"error": "unable to check chat requirement"})
-			return
-		}
-		for i := 0; i < chatgpt.PowRetryTimes; i++ {		
-			if chat_require.Proof.Required && chat_require.Proof.Difficulty <= chatgpt.PowMaxDifficulty {
-				logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, chatgpt.PowRetryTimes))
-				chat_require, _ = chatgpt.CheckRequire(token, api.OAIDID)
-				if chat_require == nil {
-					c.JSON(500, gin.H{"error": "unable to check chat requirement"})
-					return
-				}
-			} else {
-				break
-			}
-		}
-	}()
-	wg.Wait()
-	if err != nil {
-		c.JSON(500, gin.H{"error": "unable to create ws tunnel"})
+	
+	chat_require, p = chatgpt.CheckRequire(token, api.OAIDID)
+	if chat_require == nil {
+		c.JSON(500, gin.H{"error": "unable to check chat requirement"})
 		return
+	}
+	for i := 0; i < chatgpt.PowRetryTimes; i++ {		
+		if chat_require.Proof.Required && chat_require.Proof.Difficulty <= chatgpt.PowMaxDifficulty {
+			logger.Warn(fmt.Sprintf("Proof of work difficulty too high: %s. Retrying... %d/%d ", chat_require.Proof.Difficulty, i + 1, chatgpt.PowRetryTimes))
+			chat_require, _ = chatgpt.CheckRequire(token, api.OAIDID)
+			if chat_require == nil {
+				c.JSON(500, gin.H{"error": "unable to check chat requirement"})
+				return
+			}
+		} else {
+			break
+		}
 	}
 	if chat_require == nil {
 		c.JSON(500, gin.H{"error": "unable to check chat requirement"})
@@ -229,7 +213,6 @@ func CreateChatCompletions(c *gin.Context) {
 		c.String(200, "data: [DONE]\n\n")
 	}
 
-	chatgpt.UnlockSpecConn(token, uid)
 }
 
 func generateId() string {
@@ -377,91 +360,18 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 	var isRole = true
 	var waitSource = false
 	var imgSource []string
-	var isWSS = false
 	var convId string
 	var msgId string
-	var respId string
-	var wssUrl string
-	var connInfo *api.ConnInfo
-	var wsSeq int
-	var isWSInterrupt bool = false
-	var interruptTimer *time.Timer
 
-	if !strings.Contains(response.Header.Get("Content-Type"), "text/event-stream") {
-		isWSS = true
-		connInfo = chatgpt.FindSpecConn(token, uuid)
-		if connInfo.Conn == nil {
-			c.JSON(500, gin.H{"error": "No websocket connection"})
-			return "", nil
-		}
-		var wssResponse chatgpt.ChatGPTWSSResponse
-		json.NewDecoder(response.Body).Decode(&wssResponse)
-		wssUrl = wssResponse.WssUrl
-		respId = wssResponse.ResponseId
-		convId = wssResponse.ConversationId
-	}
 	for {
 		var line string
 		var err error
-		if isWSS {
-			var messageType int
-			var message []byte
-			if isWSInterrupt {
-				if interruptTimer == nil {
-					interruptTimer = time.NewTimer(10 * time.Second)
-				}
-				select {
-				case <-interruptTimer.C:
-					c.JSON(500, gin.H{"error": "WS interrupt & new WS timeout"})
-					return "", nil
-				default:
-					goto reader
-				}
+		line, err = reader.ReadString('\n')
+		if err != nil {
+			if err == io.EOF {
+				break
 			}
-		reader:
-			messageType, message, err = connInfo.Conn.ReadMessage()
-			if err != nil {
-				connInfo.Ticker.Stop()
-				connInfo.Conn.Close()
-				connInfo.Conn = nil
-				err := chatgpt.CreateWSConn(wssUrl, connInfo, 0)
-				if err != nil {
-					c.JSON(500, gin.H{"error": err.Error()})
-					return "", nil
-				}
-				isWSInterrupt = true
-				connInfo.Conn.WriteMessage(websocket.TextMessage, []byte("{\"type\":\"sequenceAck\",\"sequenceId\":"+strconv.Itoa(wsSeq)+"}"))
-				continue
-			}
-			if messageType == websocket.TextMessage {
-				var wssMsgResponse chatgpt.WSSMsgResponse
-				json.Unmarshal(message, &wssMsgResponse)
-				if wssMsgResponse.Data.ResponseId != respId {
-					continue
-				}
-				wsSeq = wssMsgResponse.SequenceId
-				if wsSeq%50 == 0 {
-					connInfo.Conn.WriteMessage(websocket.TextMessage, []byte("{\"type\":\"sequenceAck\",\"sequenceId\":"+strconv.Itoa(wsSeq)+"}"))
-				}
-				base64Body := wssMsgResponse.Data.Body
-				bodyByte, err := base64.StdEncoding.DecodeString(base64Body)
-				if err != nil {
-					continue
-				}
-				if isWSInterrupt {
-					isWSInterrupt = false
-					interruptTimer.Stop()
-				}
-				line = string(bodyByte)
-			}
-		} else {
-			line, err = reader.ReadString('\n')
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				return "", nil
-			}
+			return "", nil
 		}
 		if len(line) < 6 {
 			continue
@@ -595,9 +505,6 @@ func Handler(c *gin.Context, response *http.Response, token string, uuid string,
 			if stream {
 				final_line := StopChunk(finish_reason)
 				c.Writer.WriteString("data: " + final_line.String() + "\n\n")
-			}
-			if isWSS {
-				break
 			}
 		}
 	}

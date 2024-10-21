@@ -3,31 +3,22 @@ package chatgpt
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
-	"net"
-	http2 "net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	http "github.com/bogdanfinn/fhttp"
-	"github.com/bogdanfinn/tls-client/profiles"
-	tls "github.com/bogdanfinn/utls"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/crypto/sha3"
-	"golang.org/x/net/proxy"
 
 	"github.com/maxduke/go-chatgpt-api/api"
 	"github.com/linweiyuan/go-logger/logger"
@@ -492,129 +483,44 @@ func handleConversationResponse(c *gin.Context, resp *http.Response, request Cre
 
 	defer resp.Body.Close()
 	reader := bufio.NewReader(resp.Body)
-	readStr, _ := reader.ReadString(' ')
 
-	if !strings.Contains(resp.Header.Get("Content-Type"), "text/event-stream") {
-		var createConversationWssResponse ChatGPTWSSResponse
-		json.Unmarshal([]byte(readStr), &createConversationWssResponse)
-		wssUrl := createConversationWssResponse.WssUrl
+	for {
+		if c.Request.Context().Err() != nil {
+			break
+		}
 
-		//fmt.Println(wssUrl)
-
-		//wssu, err := url.Parse(wssUrl)
-
-		//fmt.Println(wssu.RawQuery)
-
-		wssSubProtocols := []string{"json.reliable.webpubsub.azure.v1"}
-
-		dialer := websocket.DefaultDialer
-		wssRequest, err := http.NewRequest("GET", wssUrl, nil)
+		line, err := reader.ReadString('\n')
 		if err != nil {
-			log.Fatal("Error creating request:", err)
+			break
 		}
-		wssRequest.Header.Add("Sec-WebSocket-Protocol", wssSubProtocols[0])
 
-		conn, _, err := dialer.Dial(wssUrl, http2.Header(wssRequest.Header))
-		if err != nil {
-			log.Fatal("Error dialing:", err)
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "event") ||
+			strings.HasPrefix(line, "data: 20") ||
+			strings.HasPrefix(line, `data: {"conversation_id"`) ||
+			line == "" {
+			continue
 		}
-		defer conn.Close()
 
-		//log.Printf("WebSocket handshake completed with status code: %d", wssResp.StatusCode)
+		responseJson := line[6:]
+		if strings.HasPrefix(responseJson, "[DONE]") && isMaxTokens && autoContinue {
+			continue
+		}
 
-		recvMsgCount := 0
-
-		for {
-			messageType, message, err := conn.ReadMessage()
-			if err != nil {
-				log.Println("Error reading message:", err)
-				break // Exit the loop on error
-			}
-
-			// Handle different types of messages (Text, Binary, etc.)
-			switch messageType {
-			case websocket.TextMessage:
-				//log.Printf("Received Text Message: %s", message)
-				var wssConversationResponse WSSMsgResponse
-				json.Unmarshal(message, &wssConversationResponse)
-
-				sequenceId := wssConversationResponse.SequenceId
-
-				sequenceMsg := WSSSequenceAckMessage{
-					Type:       "sequenceAck",
-					SequenceId: sequenceId,
-				}
-				sequenceMsgStr, err := json.Marshal(sequenceMsg)
-
-				base64Body := wssConversationResponse.Data.Body
-				bodyByte, err := base64.StdEncoding.DecodeString(base64Body)
-
-				if err != nil {
-					return
-				}
-				body := string(bodyByte[:])
-
-				if len(body) > 0 {
-					c.Writer.Write([]byte(body))
-					c.Writer.Flush()
-				}
-
-				if strings.Contains(body[:], "[DONE]") {
-					conn.WriteMessage(websocket.TextMessage, sequenceMsgStr)
-					conn.Close()
-					return
-				}
-
-				recvMsgCount++
-
-				if recvMsgCount > 10 {
-					conn.WriteMessage(websocket.TextMessage, sequenceMsgStr)
-				}
-			case websocket.BinaryMessage:
-				//log.Printf("Received Binary Message: %d bytes", len(message))
-			default:
-				//log.Printf("Received Other Message Type: %d", messageType)
+		// no need to unmarshal every time, but if response content has this "max_tokens", need to further check
+		if strings.TrimSpace(responseJson) != "" && strings.Contains(responseJson, responseTypeMaxTokens) {
+			var createConversationResponse CreateConversationResponse
+			json.Unmarshal([]byte(responseJson), &createConversationResponse)
+			message := createConversationResponse.Message
+			if message.Metadata.FinishDetails.Type == responseTypeMaxTokens && createConversationResponse.Message.Status == responseStatusFinishedSuccessfully {
+				isMaxTokens = true
+				continueParentMessageID = message.ID
+				continueConversationID = createConversationResponse.ConversationID
 			}
 		}
-	} else {
-		for {
-			if c.Request.Context().Err() != nil {
-				break
-			}
 
-			line, err := reader.ReadString('\n')
-			if err != nil {
-				break
-			}
-
-			line = strings.TrimSpace(line)
-			if strings.HasPrefix(line, "event") ||
-				strings.HasPrefix(line, "data: 20") ||
-				strings.HasPrefix(line, `data: {"conversation_id"`) ||
-				line == "" {
-				continue
-			}
-
-			responseJson := line[6:]
-			if strings.HasPrefix(responseJson, "[DONE]") && isMaxTokens && autoContinue {
-				continue
-			}
-
-			// no need to unmarshal every time, but if response content has this "max_tokens", need to further check
-			if strings.TrimSpace(responseJson) != "" && strings.Contains(responseJson, responseTypeMaxTokens) {
-				var createConversationResponse CreateConversationResponse
-				json.Unmarshal([]byte(responseJson), &createConversationResponse)
-				message := createConversationResponse.Message
-				if message.Metadata.FinishDetails.Type == responseTypeMaxTokens && createConversationResponse.Message.Status == responseStatusFinishedSuccessfully {
-					isMaxTokens = true
-					continueParentMessageID = message.ID
-					continueConversationID = createConversationResponse.ConversationID
-				}
-			}
-
-			c.Writer.Write([]byte(line + "\n\n"))
-			c.Writer.Flush()
-		}
+		c.Writer.Write([]byte(line + "\n\n"))
+		c.Writer.Flush()
 	}
 
 	if isMaxTokens && autoContinue {
@@ -698,169 +604,6 @@ func NewRequest(method string, url string, body io.Reader, token string, deviceI
 	// 	request.Header.Set("Chatgpt-Account-Id", secret.TeamUserID)
 	// }
 	return request, nil
-}
-
-func getWSURL(token string, deviceId string, retry int) (string, error) {
-	request, err := NewRequest(http.MethodPost, api.ChatGPTApiUrlPrefix+"/backend-api/register-websocket", nil, token, deviceId)
-	if err != nil {
-		return "", err
-	}
-	request.Header.Set("User-Agent", api.UserAgent)
-	request.Header.Set("Accept", "*/*")
-	if token != "" {
-		request.Header.Set("Authorization", "Bearer "+token)
-	}
-	response, err := api.Client.Do(request)
-	if err != nil {
-		if retry > 3 {
-			return "", err
-		}
-		time.Sleep(time.Second) // wait 1s to get ws url
-		return getWSURL(token, deviceId, retry+1)
-	}
-	defer response.Body.Close()
-	var WSSResp ChatGPTWSSResponse
-	err = json.NewDecoder(response.Body).Decode(&WSSResp)
-	if err != nil {
-		return "", err
-	}
-	return WSSResp.WssUrl, nil
-}
-
-type rawDialer interface {
-	Dial(network string, addr string) (c net.Conn, err error)
-}
-
-func CreateWSConn(addr string, connInfo *api.ConnInfo, retry int) error {
-	dialer := websocket.Dialer{
-		HandshakeTimeout: 8 * time.Second,
-		NetDialTLSContext: func(ctx context.Context, network string, addr string) (net.Conn, error) {
-			host, _, _ := net.SplitHostPort(addr)
-			config := &tls.Config{ServerName: host, OmitEmptyPsk: true}
-			var rawDial rawDialer
-			if api.ProxyUrl != "" {
-				proxyURL, _ := url.Parse(api.ProxyUrl)
-				rawDial, _ = proxy.FromURL(proxyURL, proxy.Direct)
-			} else {
-				rawDial = &net.Dialer{}
-			}
-			dialConn, err := rawDial.Dial(network, addr)
-			if err != nil {
-				return nil, err
-			}
-			client := tls.UClient(dialConn, config, profiles.Okhttp4Android13.GetClientHelloId(), false, true)
-			return client, nil
-		},
-	}
-	dialer.EnableCompression = true
-	dialer.Subprotocols = []string{"json.reliable.webpubsub.azure.v1"}
-	conn, _, err := dialer.Dial(addr, nil)
-	if err != nil {
-		if retry > 3 {
-			return err
-		}
-		time.Sleep(time.Second) // wait 1s to recreate w
-		return CreateWSConn(addr, connInfo, retry+1)
-	}
-	connInfo.Conn = conn
-	connInfo.Expire = time.Now().Add(time.Minute * 30)
-	ticker := time.NewTicker(time.Second * 8)
-	connInfo.Ticker = ticker
-	go func(ticker *time.Ticker) {
-		defer ticker.Stop()
-		for {
-			<-ticker.C
-			if err := connInfo.Conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
-				connInfo.Conn.Close()
-				connInfo.Conn = nil
-				break
-			}
-		}
-	}(ticker)
-	return nil
-}
-
-func findAvailConn(token string, uuid string) *api.ConnInfo {
-	for _, value := range api.ConnPool[token] {
-		if !value.Lock {
-			value.Lock = true
-			value.Uuid = uuid
-			return value
-		}
-	}
-	newConnInfo := api.ConnInfo{Uuid: uuid, Lock: true}
-	api.ConnPool[token] = append(api.ConnPool[token], &newConnInfo)
-	return &newConnInfo
-}
-
-func FindSpecConn(token string, uuid string) *api.ConnInfo {
-	for _, value := range api.ConnPool[token] {
-		if value.Uuid == uuid {
-			return value
-		}
-	}
-	return &api.ConnInfo{}
-}
-
-func UnlockSpecConn(token string, uuid string) {
-	for _, value := range api.ConnPool[token] {
-		if value.Uuid == uuid {
-			value.Lock = false
-		}
-	}
-}
-
-func InitWSConn(token string, deviceId string, uuid string) error {
-	connInfo := findAvailConn(token, uuid)
-	conn := connInfo.Conn
-	isExpired := connInfo.Expire.IsZero() || time.Now().After(connInfo.Expire)
-	if conn == nil || isExpired {
-		if conn != nil {
-			connInfo.Ticker.Stop()
-			conn.Close()
-			connInfo.Conn = nil
-		}
-		wssURL, err := getWSURL(token, deviceId, 0)
-		if err != nil {
-			return err
-		}
-		err = CreateWSConn(wssURL, connInfo, 0)
-		if err != nil {
-			return err
-		}
-		return nil
-	} else {
-		ctx, cancelFunc := context.WithTimeout(context.Background(), time.Millisecond*100)
-		go func() {
-			defer cancelFunc()
-			for {
-				_, _, err := conn.NextReader()
-				if err != nil {
-					break
-				}
-				if ctx.Err() != nil {
-					break
-				}
-			}
-		}()
-		<-ctx.Done()
-		err := ctx.Err()
-		if err != nil {
-			switch err {
-			case context.Canceled:
-				connInfo.Ticker.Stop()
-				conn.Close()
-				connInfo.Conn = nil
-				connInfo.Lock = false
-				return InitWSConn(token, deviceId, uuid)
-			case context.DeadlineExceeded:
-				return nil
-			default:
-				return nil
-			}
-		}
-		return nil
-	}
 }
 
 func CheckRequire(access_token string, deviceId string) (*ChatRequire, string) {
