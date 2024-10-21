@@ -3,6 +3,10 @@
 # 此为个人维护的魔改版，相比原版，有以下改动/区别
 Docker image: maxduke/go-chatgpt-api:latest
 
+## 20241021
+- Remove unused WSS code
+- Update deps.
+
 ## 20240913
 - [imitate]Add support for o1-preview & o1-mini
 
