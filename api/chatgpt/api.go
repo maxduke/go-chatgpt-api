@@ -138,8 +138,7 @@ var (
 		"webdriver−false",
 		"getInstalledRelatedApps−function getInstalledRelatedApps() { [native code] }",
 		"getInstalledRelatedApps−function getInstalledRelatedApps() { [native code] }",
-		"bluetooth−[object Bluetooth]"
-	}
+		"bluetooth−[object Bluetooth]"}
 	documentKeys = []string{"_reactListeningo743lnnpvdg", "location"}
 	windowKeys = []string{
 		"0",
