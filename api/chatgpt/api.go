@@ -38,9 +38,111 @@ var (
 	PowRetryTimes = 0
 	PowMaxDifficulty = "000032"
 	powMaxCalcTimes = 500000
-	navigatorKeys = []string{"hardwareConcurrency−16", "login−[object NavigatorLogin]","presentation−[object Presentation]","managed−[object NavigatorManagedData]"}
-	documentKeys = []string{"location"}
+	navigatorKeys = []string{
+		"registerProtocolHandler−function registerProtocolHandler() { [native code] }",
+		"storage−[object StorageManager]",
+		"locks−[object LockManager]",
+		"appCodeName−Mozilla",
+		"permissions−[object Permissions]",
+		"appVersion−5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
+		"share−function share() { [native code] }",
+		"webdriver−false",
+		"managed−[object NavigatorManagedData]",
+		"canShare−function canShare() { [native code] }",
+		"vendor−Google Inc.",
+		"vendor−Google Inc.",
+		"mediaDevices−[object MediaDevices]",
+		"vibrate−function vibrate() { [native code] }",
+		"storageBuckets−[object StorageBucketManager]",
+		"mediaCapabilities−[object MediaCapabilities]",
+		"getGamepads−function getGamepads() { [native code] }",
+		"bluetooth−[object Bluetooth]",
+		"share−function share() { [native code] }",
+		"cookieEnabled−true",
+		"virtualKeyboard−[object VirtualKeyboard]",
+		"product−Gecko",
+		"mediaDevices−[object MediaDevices]",
+		"canShare−function canShare() { [native code] }",
+		"getGamepads−function getGamepads() { [native code] }",
+		"product−Gecko",
+		"xr−[object XRSystem]",
+		"clipboard−[object Clipboard]",
+		"storageBuckets−[object StorageBucketManager]",
+		"unregisterProtocolHandler−function unregisterProtocolHandler() { [native code] }",
+		"productSub−20030107",
+		"login−[object NavigatorLogin]",
+		"vendorSub−",
+		"login−[object NavigatorLogin]",
+		"userAgent−Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
+		"getInstalledRelatedApps−function getInstalledRelatedApps() { [native code] }",
+		"userAgent−Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
+		"mediaDevices−[object MediaDevices]",
+		"locks−[object LockManager]",
+		"webkitGetUserMedia−function webkitGetUserMedia() { [native code] }",
+		"vendor−Google Inc.",
+		"xr−[object XRSystem]",
+		"mediaDevices−[object MediaDevices]",
+		"virtualKeyboard−[object VirtualKeyboard]",
+		"userAgent−Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
+		"virtualKeyboard−[object VirtualKeyboard]",
+		"appName−Netscape",
+		"storageBuckets−[object StorageBucketManager]",
+		"presentation−[object Presentation]",
+		"onLine−true",
+		"mimeTypes−[object MimeTypeArray]",
+		"credentials−[object CredentialsContainer]",
+		"presentation−[object Presentation]",
+		"getGamepads−function getGamepads() { [native code] }",
+		"vendorSub−",
+		"virtualKeyboard−[object VirtualKeyboard]",
+		"serviceWorker−[object ServiceWorkerContainer]",
+		"xr−[object XRSystem]",
+		"product−Gecko",
+		"keyboard−[object Keyboard]",
+		"gpu−[object GPU]",
+		"getInstalledRelatedApps−function getInstalledRelatedApps() { [native code] }",
+		"webkitPersistentStorage−[object DeprecatedStorageQuota]",
+		"doNotTrack",
+		"clearAppBadge−function clearAppBadge() { [native code] }",
+		"presentation−[object Presentation]",
+		"serial−[object Serial]",
+		"locks−[object LockManager]",
+		"requestMIDIAccess−function requestMIDIAccess() { [native code] }",
+		"locks−[object LockManager]",
+		"requestMediaKeySystemAccess−function requestMediaKeySystemAccess() { [native code] }",
+		"vendor−Google Inc.",
+		"pdfViewerEnabled−true",
+		"language−zh-CN",
+		"setAppBadge−function setAppBadge() { [native code] }",
+		"geolocation−[object Geolocation]",
+		"userAgentData−[object NavigatorUAData]",
+		"mediaCapabilities−[object MediaCapabilities]",
+		"requestMIDIAccess−function requestMIDIAccess() { [native code] }",
+		"getUserMedia−function getUserMedia() { [native code] }",
+		"mediaDevices−[object MediaDevices]",
+		"webkitPersistentStorage−[object DeprecatedStorageQuota]",
+		"userAgent−Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
+		"sendBeacon−function sendBeacon() { [native code] }",
+		"hardwareConcurrency−32",
+		"appVersion−5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
+		"credentials−[object CredentialsContainer]",
+		"storage−[object StorageManager]",
+		"cookieEnabled−true",
+		"pdfViewerEnabled−true",
+		"windowControlsOverlay−[object WindowControlsOverlay]",
+		"scheduling−[object Scheduling]",
+		"pdfViewerEnabled−true",
+		"hardwareConcurrency−32",
+		"xr−[object XRSystem]",
+		"userAgent−Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0",
+		"webdriver−false",
+		"getInstalledRelatedApps−function getInstalledRelatedApps() { [native code] }",
+		"getInstalledRelatedApps−function getInstalledRelatedApps() { [native code] }",
+		"bluetooth−[object Bluetooth]"
+	}
+	documentKeys = []string{"_reactListeningo743lnnpvdg", "location"}
 	windowKeys = []string{
+		"0",
 		"window",
 		"self",
 		"document",
@@ -628,6 +730,7 @@ func CheckRequire(access_token string, deviceId string) (*ChatRequire, string) {
 	var require ChatRequire
 	err = json.NewDecoder(response.Body).Decode(&require)
 	if err != nil {
+		logger.Error(err.Error())
 		return nil, ""
 	}
 	return &require, cachedRequireProof
@@ -648,9 +751,9 @@ func GetDpl() {
 	if len(cachedScripts) > 0 {
 		return
 	}
-	cachedScripts = append(cachedScripts, "https://cdn.oaistatic.com/_next/static/chunks/9598-0150caea9526d55d.js?dpl=abad631f183104e6c8a323392d7bc30b933c5c7c")
-	cachedDpl = "dpl=abad631f183104e6c8a323392d7bc30b933c5c7c"
-	request, err := http.NewRequest(http.MethodGet, "https://chatgpt.com/?oai-dm=1", nil)
+	cachedScripts = append(cachedScripts, "https://cdn.oaistatic.com/_next/static/cXh69klOLzS0Gy2joLDRS/_ssgManifest.js?dpl=453ebaec0d44c2decab71692e1bfe39be35a24b3")
+	cachedDpl = "dpl=453ebaec0d44c2decab71692e1bfe39be35a24b3"
+	request, err := http.NewRequest(http.MethodGet, "https://chatgpt.com", nil)
 	request.Header.Set("User-Agent", api.UserAgent)
 	request.Header.Set("Accept", "*/*")
 	if err != nil {
