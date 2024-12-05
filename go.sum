@@ -6,8 +6,8 @@ github.com/andybalholm/cascadia v1.3.2 h1:3Xi6Dw5lHF15JtdcmAHD3i1+T8plmv7BQ/nsVi
 github.com/andybalholm/cascadia v1.3.2/go.mod h1:7gtRlve5FxPPgIgX36uWBX58OdBsSS6lUvCFb+h7KvU=
 github.com/bogdanfinn/fhttp v0.5.30 h1:oo3YVpCU/aq3x/gy+gyFnV0VsnuEd2w+O/muLUGUINA=
 github.com/bogdanfinn/fhttp v0.5.30/go.mod h1:bdo7riUy+lXzfGAfGX6dhwRIqlKRSxraI+4eo98lFoA=
-github.com/bogdanfinn/tls-client v1.7.8 h1:oAr+Ox0syJjgcY5ibKLb+r1ofabB1WDysNTY5sQN2wg=
-github.com/bogdanfinn/tls-client v1.7.8/go.mod h1:pQwF0eqfL0gf0mu8hikvu6deZ3ijSPruJDzEKEnnXjU=
+github.com/bogdanfinn/tls-client v1.7.10 h1:lDwK7Pl9fTXQ1Ijwm1buI+n0MsfqTUDvTMdUE1pR+iw=
+github.com/bogdanfinn/tls-client v1.7.10/go.mod h1:IMCJzJF5lbsoqX1aXl7hZ2yNwLTAhcV9VG3I9rp0cjw=
 github.com/bogdanfinn/utls v1.6.2 h1:82QYt8sjweKzW71D8/6DTAebZleRyJA+l56bplMM93M=
 github.com/bogdanfinn/utls v1.6.2/go.mod h1:czcHxHGsc1q9NjgWSeSinQZzn6MR76zUmGVIGanSXO0=
 github.com/bytedance/sonic v1.12.4 h1:9Csb3c9ZJhfUWeMtpCDCq6BUoH5ogfDFLUgQ/jG+R0k=
