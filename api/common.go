@@ -23,7 +23,7 @@ import (
 const (
 	ChatGPTApiPrefix    = "/chatgpt"
 	ImitateApiPrefix    = "/imitate/v1"
-	ChatGPTApiUrlPrefix = "https://chatgpt.com"
+	ChatGPTApiUrlPrefix = "https://ios.chat.openai.com"
 
 	PlatformApiPrefix    = "/platform"
 	PlatformApiUrlPrefix = "https://api.openai.com"
@@ -33,7 +33,7 @@ const (
 	XAuthorizationHeader               = "X-Authorization"
 	ArkoseTokenHeader                  = "Openai-Sentinel-Arkose-Token"
 	ContentType                        = "application/x-www-form-urlencoded"
-	DefaultUserAgent                   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0"
+	DefaultUserAgent                   = "ChatGPT/1.2024.170 (Mac OS X 14.4.1; arm64; build 1719338033)"
 	Auth0Url                           = "https://auth0.openai.com"
 	LoginUsernameUrl                   = Auth0Url + "/u/login/identifier?state="
 	LoginPasswordUrl                   = Auth0Url + "/u/login/password?state="
@@ -159,6 +159,7 @@ func Proxy(c *gin.Context) {
 	req.Header.Set(AuthorizationHeader, GetAccessToken(c))
 	req.Header.Set("Oai-Language", Language)
 	req.Header.Set("Oai-Device-Id", OAIDID)
+	req.Header.Set("oai-client-type", "ios")
 	req.Header.Set("Cookie", req.Header.Get("Cookie")+"oai-did="+OAIDID+";")
 	resp, err := Client.Do(req)
 	if err != nil {

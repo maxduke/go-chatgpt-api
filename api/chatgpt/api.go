@@ -689,6 +689,7 @@ func NewRequest(method string, url string, body io.Reader, token string, deviceI
 		return &http.Request{}, err
 	}
 	request.Header.Set("User-Agent", api.UserAgent)
+	request.Header.Set("oai-client-type", "ios")
 	request.Header.Set("Accept", "*/*")
 	if deviceId != "" {
 		request.Header.Set("Cookie", request.Header.Get("Cookie")+"oai-did="+deviceId+";")
