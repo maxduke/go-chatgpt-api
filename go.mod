@@ -14,7 +14,7 @@ require (
 	github.com/linweiyuan/go-logger v0.0.0-20230709142852-da1f090a7d4c
 	github.com/xqdoo00o/OpenAIAuth v0.0.0-20240701110453-a742f7a5ea18
 	github.com/xqdoo00o/funcaptcha v0.0.0-20240701110249-093b35d56d32
-	golang.org/x/crypto v0.30.0
+	golang.org/x/crypto v0.31.0
 )
 
 require (
