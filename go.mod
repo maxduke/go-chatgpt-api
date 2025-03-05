@@ -1,9 +1,6 @@
 module github.com/maxduke/go-chatgpt-api
 
 go 1.23
-
-toolchain go1.23.0
-
 require (
 	github.com/PuerkitoBio/goquery v1.10.1
 	github.com/bogdanfinn/fhttp v0.5.34
@@ -14,7 +11,7 @@ require (
 	github.com/linweiyuan/go-logger v0.0.0-20230709142852-da1f090a7d4c
 	github.com/xqdoo00o/OpenAIAuth v0.0.0-20240701110453-a742f7a5ea18
 	github.com/xqdoo00o/funcaptcha v0.0.0-20240701110249-093b35d56d32
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.36.0
 )
 
 require (
@@ -47,8 +44,8 @@ require (
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	golang.org/x/arch v0.12.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/protobuf v1.35.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
